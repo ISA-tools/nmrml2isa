@@ -5,7 +5,11 @@ import argparse
 import textwrap
 import warnings
 import json
+from datetime import datetime
 import owllib.ontology
+import multiprocessing
+import multiprocessing.pool
+from functools import partial
 
 try:
     import progressbar as pb
@@ -17,7 +21,10 @@ import nmrml2isa.isa as isa
 import nmrml2isa.nmrml as nmrml
 
 
-SUPPORTED_ANALYSIS_TYPES = ('MS')
+def parse_task(owl, f):
+    print('\r[{}] Parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), f), end='')
+    return nmrml.nmrMLmeta(f, owl).meta#str(json.dumps(nmrml.nmrMLmeta(f, owl).meta))
+
 
 def run():
     """ Runs **mzml2isa** from the command line"""
@@ -31,6 +38,8 @@ def run():
     p.add_argument('-s', dest='study_name', help='study identifier name', required=True)
     #p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
     p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)
+    p.add_argument('-c', dest='process_count', help='number of processes to spawn (default: nbr of cpu * 4)', 
+                         action='store', default=None)
 
     args = p.parse_args()
     
@@ -45,13 +54,15 @@ def run():
     full_parse(args.in_dir, args.out_dir, args.study_name, 
                #args.usermeta if args.usermeta else {}, 
                #args.split, 
-               args.verbose)
+               args.verbose, args.process_count)
 
 
 
 
 
-def full_parse(in_dir, out_dir, study_identifer, verbose=False):
+
+
+def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=None):
     """ Parses every study from *in_dir* and then creates ISA files.
 
     A new folder is created in the out directory bearing the name of
@@ -65,35 +76,45 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False):
     # get mzML file in the example_files folder
     nmrml_path = os.path.join(in_dir, "*.nmrML")
     
-    if verbose:
-        print(nmrml_path)
-
-    
-    nmrml_files = [mw for mw in glob.glob(nmrml_path)][:10]
+    nmrml_files = [mw for mw in glob.glob(nmrml_path)]
     nmrml_files.sort()
+
+    pool = multiprocessing.pool.Pool(process_count or multiprocessing.cpu_count()*4)
 
     metalist = []
     if nmrml_files:
 
         print('Loading ontology...')
-        owl = owllib.ontology.Ontology()
-        owl.load(location="http://nmrml.org/cv/v1.0.rc1/nmrCV.owl")
+        try:
+            owl = owllib.ontology.Ontology()
+            owl.load(location="http://nmrml.org/cv/v1.0.rc1/nmrCV.owl")
+        except:
+            print('Impossible to load ontology, check your internet connection')
+            sys.exit(1)
+
 
         # get meta information for all files
-        if not verbose:
-            pbar = pb.ProgressBar(widgets=['Parsing: ',
-                                           pb.Counter(), '/', str(len(nmrml_files)), 
-                                           pb.Bar(marker="█", left=" |", right="| "),
-                                           pb.AdaptiveETA()])
-            for i in pbar(nmrml_files):
-                metalist.append(nmrml.nmrMLmeta(i, owl).meta)
+        #task = partial(parse_task, owl)
+        metalist = pool.starmap(parse_task, ((owl, x) for x in nmrml_files))
 
-        else:
-            for i in nmrml_files:
-                print("Parsing nmrML file: {}".format(i))
-                meta = nmrml.nmrMLmeta(i, owl).meta
+        pool.close()
 
-                metalist.append(meta)
+        
+        #if not verbose:
+        #    pbar = pb.ProgressBar(widgets=['Parsing: ',
+        #                                   pb.Counter(), '/', str(len(nmrml_files)), 
+        #                                   pb.Bar(marker="█", left=" |", right="| "),
+        #                                   pb.AdaptiveETA()])
+        #    for i in pbar(nmrml_files):
+        #        metalist.append(nmrml.nmrMLmeta(i, owl).meta)
+
+        #else:
+        #    for i in nmrml_files:
+        #        print("Parsing nmrML file: {}".format(i))
+        #        meta = nmrml.nmrMLmeta(i, owl).meta
+        #
+        #    metalist.append(meta)
+        
 
 
         # update isa-tab file
@@ -105,6 +126,8 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False):
             if verbose:
                 print("No files were created.")
     
+        pool.join()
+
     else:
         warnings.warn("No files were found in directory."), UserWarning
         #print("No files were found.")    

@@ -1,4 +1,4 @@
-import owllib
+import owllib.ontology
 import copy
 
 
@@ -11,6 +11,8 @@ class EasyOwl(object):
         if cached_onto is not None:
             self.owl = copy.deepcopy(cached_onto)
         elif owl_adress is not None:
+            self.owl.load(location=owl_adress)
+        else:
             self.owl.load(location="http://nmrml.org/cv/v1.0.rc1/nmrCV.owl")
     
 
@@ -102,6 +104,25 @@ class EasyOwl(object):
                                     for prc in base._get_children() }
                 )
         return self._prc_cls
+
+    @property
+    def prb_cls(self):
+        if not hasattr(self, '_prb_cls'):
+            self._prb_cls = { probe.uri.split('#')[-1]:probe
+                              for entity in self.owl.classes
+                                if 'NMR:1400014' in entity.uri
+                              for probe in entity._get_children()}
+
+            self._prb_cls.update( { detailled_probe.uri.split('#')[-1]:detailled_probe
+                                    for probe in self._prb_cls.values()
+                                    for detailled_probe in probe._get_children() } )
+
+            self._prb_cls.update( { detailled_probe.uri.split('#')[-1]:detailled_probe
+                                    for probe in self._prb_cls.values()
+                                    for detailled_probe in probe._get_children() } )
+
+        return self._prb_cls
+    
     
 
 
