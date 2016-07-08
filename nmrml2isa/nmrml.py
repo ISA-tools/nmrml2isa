@@ -1,34 +1,28 @@
-import owllib.ontology
 import os
 import json
 import collections
+import pronto
 import xml.etree.ElementTree as etree
 #from lxml import etree
 
 
-from nmrml2isa.owl import EasyOwl
-
-
-def _urllize(accession):
-        if accession.startswith('NMR'):
-            return 'http://nmrML.org/nmrCV#'+accession
-        elif accession.startswith('UO') or accession.startswith('CHEBI'):
-            return 'http://purl.obolibrary.org/obo/'+accession
-        return accession
-
+#from nmrml2isa.owl import EasyOwl
 
 
 
 class nmrMLmeta(object):
 
-    Xpaths = {
+    xpaths = {
         'instruments': '{root}/s:instrumentConfigurationList/s:instrumentConfiguration',
         'software':    '{root}/s:softwareList/s:software',
         'acquisition': '{root}/s:acquisition/s:acquisition1D/s:acquisitionParameterSet',
         'source_file': '{root}/s:sourceFileList/s:sourceFile',
         'contacts':    '{root}/s:contactList/s:contact',
+        'processing':  '{root}/s:dataProcessingList/s:dataProcessing/s:processingMethod',
+        'spectrum':    '{root}/s:spectrum/s:spectrum1D'
     }
 
+    nmrcv = None
 
     def __init__(self, in_file, cached_onto=None):
 
@@ -41,131 +35,139 @@ class nmrMLmeta(object):
 
         self._build_env()
 
-        self.owl = EasyOwl("http://nmrml.org/cv/v1.0.rc1/nmrCV.owl", 
-                            cached_onto)
-        
+        self._load_ontology(cached_onto)
+
+
         self.meta = collections.OrderedDict()
 
         self.meta['Sample Name'] = {'value': self.sample}
+        self.meta['Derived Spectral Data File'] = {'value': self.in_file}
+        self.meta['MS Assay Name'] = {'value': self.in_file}
 
         # Start parsing
         self.instrument()
         self.acquisition()
         self.source_file()
         self.contacts()
+        self.processing()
+        self.spectrum()
 
         self._urllize(self.meta)
 
-    
-
+    def _load_ontology(self, cached_onto):
+        if self.nmrcv is None:
+            if cached_onto is not None:
+                self.nmrcv = cached_onto
+            else:
+                try:
+                    self.nmrcv =  pronto.Ontology('http://nmrml.org/cv/v1.0.rc1/nmrCV.owl')
+                except:
+                    self.nmrcv = pronto.Ontology(
+                        os.path.join(os.path.dirname(os.path.abspath(__file__)),'nmrCV.owl')
+                    )
 
     def instrument(self):
         """Parses the instrument model, manufacturer and software"""
-        instrument = self.tree.find(self.Xpaths['instruments'].format(**self.env), self.ns)
-        cvs = instrument.iterfind('./{cvParam}'.format(**self.env), self.ns)    
-        
+        instrument = self.tree.find(self.xpaths['instruments'].format(**self.env), self.ns)
+        cvs = instrument.iterfind('./{cvParam}'.format(**self.env), self.ns)
+
         for cv in cvs:
-            if cv.attrib['accession'] in self.owl.gen_cls.keys():
-                
+            if cv.attrib['accession'] in self.nmrcv['NMR:1000031'].rchildren():
+
                 self.meta['Instrument'] = {
-                    'name': cv.attrib['name'], 
-                    'accession':self.owl.gen_cls[cv.attrib['accession']].uri,
-                    'ref': 'NMRCV',
+                    'name': cv.attrib['name'],
+                    'accession': cv.attrib['accession'],
+                    'ref': cv.attrib['cvRef'],
                 }
 
-                self.meta['Instrument Manufacturer'] = self._get_vendor( 
-                    self.owl.gen_cls[cv.attrib['accession']]._get_parents().pop() 
-                )
-            elif cv.attrib['accession'] in self.owl.ins_cls.keys():
-                
-                self.meta['Instrument'] = {
-                    'name': cv.attrib['name'], 
-                    'accession':  cv.attrib['accession'], #self.owl.ins_cls[cv.attrib['accession']].uri,
-                    'ref': 'NMRCV',
-                }
+                manufacturer = next((x for x in self.nmrcv['NMR:1400255'].rchildren() if cv.attrib['name'].startswith(x.name)), None)
+                if manufacturer is not None:
+                    self.meta['Instrument Manufacturer'] = {
+                        'name': manufacturer.name,
+                        'accession': manufacturer.id,
+                        'ref': 'NMRCV',
+                    }
 
-                self.meta['Instrument Manufacturer'] = self._get_vendor( 
-                    self.owl.ins_cls[cv.attrib['accession']]._get_parents().pop() \
-                                                            ._get_parents().pop() 
-                )
-            
-            elif cv.attrib['accession'] in self.owl.prb_cls.keys():
+            # PROBE
+            elif cv.attrib['accession'] in self.nmrcv['NMR:1400014'].rchildren():
                 self.meta['NMR Probe'] = {
                     'name': cv.attrib['name'],
                     'accession': cv.attrib['accession'],
-                    'ref': 'NMRCV',
+                    'ref': cv.attrib['cvRef'],
                 }
 
-        soft = instrument.find('s:softwareRef', self.ns)
-        if soft is not None:
-            self.software(soft.attrib['ref'], 'Instrument')
-                        
-    def software(self, soft_ref, name):
-        """Parses software information."""
-        for soft in self.tree.iterfind(self.Xpaths['software'].format(**self.env), self.ns):
-            
+            # AUTOSAMPLER
+            elif cv.attrib['accession'] in self.nmrcv['NMR:1000234'].rchildren():
+                self.meta['Autosample'] = {
+                    'name': cv.attrib['name'],
+                    'accession': cv.attrib['accession'],
+                    'ref': cv.attrib['cvRef'],
+                }
+
+        soft_ref = instrument.find('s:softwareRef', self.ns)
+        if soft_ref is not None:
+            soft, softv = self.software(soft_ref.attrib['ref'])
+            if soft is not None:
+                self.meta['Instrument software'] = soft
+            if softv is not None:
+                self.meta['Instrument software version'] = {'value': softv}
+
+    def software(self, soft_ref):
+        """Parses software information
+
+        Returns:
+            software (dict or None)
+            software version (str or None)
+        """
+
+        for soft in self.tree.iterfind(self.xpaths['software'].format(**self.env), self.ns):
+
             if soft.attrib['id'] == soft_ref:
-                
-                self.meta[name+' software'] = { 'name': soft.attrib['name'],
-                                                'ref':  soft.attrib['cvRef'],
-                                                'accession': soft.attrib['accession'] }
-                
+
+                soft_meta = { 'name': soft.attrib['name'],
+                              'ref':  soft.attrib['cvRef'],
+                              'accession': soft.attrib['accession'] }
+
                 if 'version' in soft.attrib.keys():
-                    self.meta[name+' software version'] = {'value': soft.attrib['version']}
-                
-                break
+                    return soft_meta, soft.attrib['version']
+                else:
+                    return soft_meta, None
+
+        return None,None
 
     def acquisition(self):
-        acquisition = self.tree.find(self.Xpaths['acquisition'].format(**self.env), self.ns)
+        acquisition = self.tree.find(self.xpaths['acquisition'].format(**self.env), self.ns)
+        if acquisition is None: return
 
         self.meta['Number of scans'] = {'value': int(acquisition.attrib['numberOfScans'])}
         self.meta['Number of steady state scans'] = {'value': int(acquisition.attrib['numberOfSteadyStateScans'])}
 
-        terms = {'./s:sampleAcquisitionTemperature': 'Temperature',
-                 './s:sampleContainer': 'NMR tube type',
-                 './s:spinningRate': 'Spinning Rate',
-                 './s:relaxationDelay': 'Relaxation Delay',
-                 './s:pulseSequence/s:userParam': 'Pulse sequence name',
-                 './s:DirectDimensionParameterSet/s:acquisitionNucleus': 'Acquisition Nucleus',
-                 './s:DirectDimensionParameterSet/s:decouplingNucleus': 'Decoupling Nucleus',
-                 './s:DirectDimensionParameterSet/s:effectiveExcitationField': 'Effective Excitation Field',
-                 './s:DirectDimensionParameterSet/s:sweepWidth': 'Sweep Width',
-                 './s:DirectDimensionParameterSet/s:pulseWidth': 'Pulse Width',
-                 './s:DirectDimensionParameterSet/s:irradiationFrequency': 'Irradiation Frequency',
-                 './s:DirectDimensionParameterSet/s:samplingStrategy': 'Sampling Strategy',
+        terms = {'s:sampleAcquisitionTemperature': 'Temperature',
+                 's:sampleContainer': 'NMR tube type',
+                 's:spinningRate': 'Spinning Rate',
+                 's:relaxationDelay': 'Relaxation Delay',
+                 's:pulseSequence/s:userParam': 'Pulse sequence name',
+                 's:DirectDimensionParameterSet/s:acquisitionNucleus': 'Acquisition Nucleus',
+                 's:DirectDimensionParameterSet/s:decouplingNucleus': 'Decoupling Nucleus',
+                 's:DirectDimensionParameterSet/s:effectiveExcitationField': 'Effective Excitation Field',
+                 's:DirectDimensionParameterSet/s:sweepWidth': 'Sweep Width',
+                 's:DirectDimensionParameterSet/s:pulseWidth': 'Pulse Width',
+                 's:DirectDimensionParameterSet/s:irradiationFrequency': 'Irradiation Frequency',
+                 's:DirectDimensionParameterSet/s:samplingStrategy': 'Sampling Strategy',
                  }
 
-
-        for childpath, name in terms.items():
-            child = acquisition.find(childpath, self.ns)
-            
-            self.meta[name] = {}
-
-            if child is not None:
-                if 'value' in child.attrib.keys():
-                    self.meta[name]['value'] = child.attrib['value']
-                
-                if 'name' in child.attrib.keys():
-                    self.meta[name]['name'] = child.attrib['name']
-
-                if 'unitName' in child.attrib.keys():
-                    self.meta[name]['unit'] = { 'name': child.attrib['unitName'],
-                                                'ref': child.attrib['unitCvRef'],
-                                                'accession': child.attrib['unitAccession'] }
-
-                if 'cvRef' in child.attrib.keys():
-                    self.meta[name]['ref'] = child.attrib['cvRef']
-                    self.meta[name]['accession'] = child.attrib['accession']
+        self.read_children(acquisition, terms)
 
     def source_file(self):
-        source_files = self.tree.iterfind(self.Xpaths['source_file'].format(**self.env), self.ns)        
+        source_files = self.tree.iterfind(self.xpaths['source_file'].format(**self.env), self.ns)
 
-        terms = [
-            {'hook': lambda cv: cv.attrib['accession'] in self.owl.fmt_cls.keys(), 'name':'Format'},
-            {'hook': lambda cv: cv.attrib['accession'] in self.owl.fid_cls.keys(), 'name':'Type'},
-            {'hook': lambda cv: cv.attrib['accession'] in self.owl.pls_cls.keys(), 'name':'Type'},
-            {'hook': lambda cv: cv.attrib['accession'] in self.owl.acq_cls.keys(), 'name':'Type'},
-            {'hook': lambda cv: cv.attrib['accession'] in self.owl.prc_cls.keys(), 'name':'Type'},
+        hooked_terms = [
+            {'hook': lambda cv: cv.attrib['accession'] in self.nmrcv['NMR:1400285'].rchildren(), 'name':'Format'},
+            {'hook': lambda cv: cv.attrib['accession'] in self.nmrcv['NMR:1400119'].rchildren(), 'name':'Type'},
+
+            {'hook': lambda cv: cv.attrib['accession'] in self.nmrcv['NMR:1400122'].rchildren(), 'name':'Type'},
+            {'hook': lambda cv: cv.attrib['accession'] in self.nmrcv['NMR:1002006'].rchildren(), 'name':'Type'},
+            {'hook': lambda cv: cv.attrib['accession'] in self.nmrcv['NMR:1400123'].rchildren(), 'name':'Type'},
             {'hook': lambda cv: cv.attrib['accession'] == 'NMR:1000319', 'name':'Type'},
         ]
 
@@ -182,80 +184,146 @@ class nmrMLmeta(object):
 
             if source.attrib['name'] in names.keys():
                 name = names[source.attrib['name']]
-                self.meta[name+' File'] = { 
+                self.meta[name+' File'] = {
                     'value': self.sample + source.attrib['location'].split(self.sample)[-1]
                 }
-                
 
-                self._parse_cv(source, terms, name)
+                self._parse_cv(source, hooked_terms, name)
 
     def contacts(self):
-        contacts = self.tree.iterfind(self.Xpaths['contacts'].format(**self.env), self.ns)
-        self.meta['contacts'] = []
+        contacts = self.tree.iterfind(self.xpaths['contacts'].format(**self.env), self.ns)
+        self.meta['contacts'] = {'entry_list': []}
         for contact in contacts:
             name = contact.attrib['fullname'].split(' ')
             if len(name)==1: first_name, last_name, mid = '', *name, ''
             elif len(name)==2: first_name, last_name, mid = *name, ''
             else: first_name, mid, last_name = name
 
-            self.meta['contacts'].append( {
+            self.meta['contacts']['entry_list'].append( {
                 'first_name': first_name,
                 'mid': mid,
                 'last_name': last_name,
-                'mail': contact.attrib['email'] 
-                          if 'email' in contact.attrib.keys() 
+                'mail': contact.attrib['email']
+                          if 'email' in contact.attrib.keys()
                           else ''
             } )
 
-                
+    def processing(self):
+        processing = self.tree.find(self.xpaths['processing'].format(**self.env), self.ns)
+        if processing is None: return
 
-    def _urllize(self, starting_point):
+        soft_ref = processing.attrib['softwareRef']
+        soft, softv = self.software(soft_ref)
+        self.meta['Data Transformation software'] = soft
+        if softv is not None:
+            self.meta['Data Transformation software version'] = {'value': softv}
+
+        self.meta['Data Transformation Name'] = {'entry_list':[]}
+        for data_transformation in processing.iterfind(self.env['cvParam'], self.ns):
+            self.meta['Data Transformation Name']['entry_list'].append(
+                {
+                    'name': data_transformation.attrib['name'],
+                    'ref': data_transformation.attrib['cvRef'],
+                    'accession': data_transformation.attrib['accession'],
+                }
+            )
+
+    def spectrum(self):
+        spectrum = self.tree.find(self.xpaths['spectrum'].format(**self.env), self.ns)
+        if spectrum is None: return
+
+        self.meta['Number of data points'] = {'value': int(spectrum.attrib['numberOfDataPoints'])}
+
+        terms = {'s:xAxis': 'X axis range',
+                 's:yAxisType': 'Y axis type',
+
+                 's:processingParameterSet/s:postAcquisitionSolventSuppressionMethod/':'Post Acquisition Solvent Supression Method',
+                 's:processingParameterSet/s:calibrationCompound/':'Calibration Compound',
+                 's:processingParameterSet/s:dataTransformationMethod/':'Spectrum transformation method',
+                 's:firstDimensionProcessingParameterSet/s:zeroOrderPhaseCorrection': 'Zero Value Phase Correction',
+                 's:firstDimensionProcessingParameterSet/s:firstOrderPhaseCorrection': 'First Order Phase Correction',
+                 's:firstDimensionProcessingParameterSet/s:calibrationReferenceShift': 'Calibration Reference Shift',
+                 's:firstDimensionProcessingParameterSet/s:spectralDenoisingMethod': 'Spectral Denoising Method',
+                 's:firstDimensionProcessingParameterSet/s:windowFunction/s:windowFunctionMethod': 'Window Function Method',
+                 's:firstDimensionProcessingParameterSet/s:windowFunction/s:windowFunctionMethodParameter': 'Window Function Parameter',
+                 's:firstDimensionProcessingParameterSet/s:baselineCorrectionMethod': 'Baseline Correction Method',
+                 }
+
+        self.read_children(spectrum, terms)
+
+    def _meta_check(self, name):
+
+        if not name in self.meta.keys() or not self.meta[name]:
+            self.meta[name] = {}
+            return self.meta[name]
+        elif not 'entry_list' in self.meta.keys():
+            self.meta[name] = {'entry_list': [ self.meta[name], {} ]}
+            return self.meta[name]['entry_list'][-1]
+        else:
+            self.meta[name]['entry_list'].append({})
+            return self.meta[name]['entry_list'][-1]
+
+    def _meta_update(self, child, entry_point):
+
+        if 'value' in child.attrib.keys():
+            entry_point['value'] = child.attrib['value']
+        if 'name' in child.attrib.keys():
+            entry_point['name'] = child.attrib['name']
+        if 'unitName' in child.attrib.keys():
+            entry_point['unit'] = { 'name': child.attrib['unitName'],
+                                    'ref': child.attrib['unitCvRef'],
+                                    'accession': child.attrib['unitAccession'] }
+        if 'cvRef' in child.attrib.keys():
+            entry_point['ref'] = child.attrib['cvRef']
+            entry_point['accession'] = child.attrib['accession']
+
+    def read_children(self, node, terms):
+        for childpath, name in terms.items():
+            child = node.find(childpath, self.ns)
+
+            entry_point = self._meta_check(name)
+
+            if child is not None:
+
+                self._meta_update(child, entry_point)
+
+
+    @classmethod
+    def _urllize(cls, starting_point):
 
         for k,v in starting_point.items():
-            
+
             if isinstance(v, dict):
                 for key, param in v.items():
 
                     if isinstance(param, dict):
-                        self._urllize(param)
+                        cls._urllize(param)
 
                     elif key=='accession':
                         if 'http' not in param:
-                            param = _urllize(param)
+                            param = cls._urllize_name(param)
 
             elif k == 'accession':
-                v = _urllize(v)
-                
+                v = cls._urllize_name(v)
+
+    @staticmethod
+    def _urllize_name(accession):
+        if accession.startswith('NMR'):
+            return 'http://nmrML.org/nmrCV#'+accession
+        elif accession.startswith('UO') or accession.startswith('CHEBI'):
+            return 'http://purl.obolibrary.org/obo/'+accession
+        return accession
 
     def _parse_cv(self, node, terms, name):
 
         for cv in node.iterfind('./{cvParam}'.format(**self.env), self.ns):
             for term in terms:
-
                 if term['hook'](cv):
-                        self.meta[name+' '+term['name']] = { 
+                        self.meta[name+' '+term['name']] = {
                             'name': cv.attrib['name'],
                             'ref': cv.attrib['cvRef'],
                             'accession': cv.attrib['accession']
                         }
-
-
-    def _get_vendor(self, manufacturer_node):
-        """Get vendor name/ref/accession from an instrument generic model"""
-
-        manufacturer = manufacturer_node.labels.copy().pop().value.replace(' instrument model', '') \
-                        
-        
-
-        if manufacturer in self.owl.ven_cls.keys():
-            return {
-                'name': manufacturer,
-                'ref': 'NMRCV',
-                'accession': self.owl.ven_cls[manufacturer].uri
-            }
-        else:
-            return {'name': manufacturer}
-          
 
     def _build_env(self):
 
@@ -277,7 +345,6 @@ class nmrMLmeta(object):
         else:
             self.env['cvParam'] = 's:cvTerm'
 
-
     @property
     def meta_json(self):
         return json.dumps(self.meta, indent=4, sort_keys=True)
@@ -297,7 +364,7 @@ class nmrMLmeta(object):
                 #print(meta_name)
                 meta_isa["Parameter Value["+meta_name+"]"] = self.meta[meta_name]
         return meta_isa
-    
+
     @property
     def isa_json(self):
         return json.dumps(self.meta_isa, indent=4, sort_keys=True)
@@ -307,7 +374,7 @@ class nmrMLmeta(object):
 if __name__ == '__main__':
     import sys
     print(nmrMLmeta(sys.argv[1]).meta_json)
-    
+
 
 
 

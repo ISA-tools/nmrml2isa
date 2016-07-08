@@ -1,0 +1,2 @@
+"Source Name"	"Characteristics[Organism]"	"Term Source REF"	"Term Accession Number"	"Characteristics[Organism part]"	"Term Source REF"	"Term Accession Number"	"Protocol REF"	"Sample Name"
+"{Source Name}"	"{Characteristics[Organism][value]}"	"{Characteristics[Organism][ref]}"	"{Characteristics[Organism][accession]}"	"{Characteristics[Organism part][value]}"	"{Characteristics[Organism part][ref]}"	"{Characteristics[Organism part][accession]}"	"Sample collection"	"{Sample Name[value]}"

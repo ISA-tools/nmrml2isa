@@ -1,2 +1,0 @@
-"Source Name"	"Characteristics[Organism]"	"Term Source REF"	"Term Accession Number"	"Characteristics[Organism part]"	"Term Source REF"	"Term Accession Number"	"Protocol REF"	"Sample Name"
-""	""	""	""	""	""	""	"Sample collection"	"{Sample Name[value]}"
