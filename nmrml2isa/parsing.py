@@ -142,8 +142,8 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
             isa_tab_create = isa.ISA_Tab(out_dir, study_identifer).write(metalist)
 
             print(''.join(['\r'*(not verbose),
-            '[{}] Finished writing ISA-Tab files'.format(datetime.now().time().strftime('%H:%M:%S')),
-            30*' ']), end='\n')
+            '[{}] Finished writing ISA-Tab files'.format(datetime.now().time().strftime('%H:%M:%S'), out_dir),
+            ]), end='\n')
 
         else:
             if verbose:
