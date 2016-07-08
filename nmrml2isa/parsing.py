@@ -29,7 +29,7 @@ def parse_task(owl, f, verbose):
     if verbose:
         print('[{}] Started  parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), f))
     else:
-        print('\r[{}] Started  parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), f), end='')
+        print('\r[{}] Started  parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), os.path.basename(f)), end='')
     n = nmrml.nmrMLmeta(f, owl).meta
     if verbose:
         print('[{}] Finished parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), f))
@@ -81,7 +81,7 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
 
     print(''.join(['\r'*(not verbose),
             '[{}] Starting nmrml2isa'.format(datetime.now().time().strftime('%H:%M:%S')),
-            50*' ']), end='\n'*(verbose)
+            30*' ']), end='\n'*(verbose)
         )
 
     # get mzML file in the example_files folder
@@ -92,7 +92,7 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
 
     print(''.join(['\r'*(not verbose),
             '[{}] Creating multiproccessing Pool'.format(datetime.now().time().strftime('%H:%M:%S')),
-            50*' ']), end='\n'*(verbose)
+            30*' ']), end='\n'*(verbose)
         )
 
     pool = multiprocessing.pool.Pool(process_count or multiprocessing.cpu_count()*4)
@@ -102,7 +102,7 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
 
         print(''.join(['\r'*(not verbose),
             '[{}] Loading ontology'.format(datetime.now().time().strftime('%H:%M:%S')),
-            50*' ']), end='\n'*(verbose)
+            30*' ']), end='\n'*(verbose)
         )
         try:
             owl = pronto.Ontology("http://nmrml.org/cv/v1.0.rc1/nmrCV.owl")
@@ -138,12 +138,12 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
         if metalist:
             print(''.join(['\r'*(not verbose),
             '[{}] Writing ISA-Tab files'.format(datetime.now().time().strftime('%H:%M:%S')),
-            ]), end='\n'*verbose)
+            ' '*30]), end='\n'*verbose)
             isa_tab_create = isa.ISA_Tab(out_dir, study_identifer).write(metalist)
 
             print(''.join(['\r'*(not verbose),
             '[{}] Finished writing ISA-Tab files'.format(datetime.now().time().strftime('%H:%M:%S'), out_dir),
-            ]), end='\n')
+            ' '*30]), end='\n')
 
         else:
             if verbose:
