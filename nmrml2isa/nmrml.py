@@ -287,31 +287,32 @@ class nmrMLmeta(object):
 
                 self._meta_update(child, entry_point)
 
-
     @classmethod
     def _urllize(cls, starting_point):
-
         for k,v in starting_point.items():
 
             if isinstance(v, dict):
                 for key, param in v.items():
 
                     if isinstance(param, dict):
-                        cls._urllize(param)
+                        starting_point[k][key] = cls._urllize(param)
 
                     elif key=='accession':
                         if 'http' not in param:
-                            param = cls._urllize_name(param)
+                            starting_point[k][key] = cls._urllize_name(param)
+
 
             elif k == 'accession':
-                v = cls._urllize_name(v)
+                starting_point[k] = cls._urllize_name(v)
 
     @staticmethod
     def _urllize_name(accession):
         if accession.startswith('NMR'):
-            return 'http://nmrML.org/nmrCV#'+accession
+            return 'http://nmrML.org/nmrCV#{}'.format(accession)
         elif accession.startswith('UO') or accession.startswith('CHEBI'):
-            return 'http://purl.obolibrary.org/obo/'+accession
+            return 'http://purl.obolibrary.org/obo/{}'.format(accession)
+        elif accession.startswith('C'):
+            return 'http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#{}'.format(accession)
         return accession
 
     def _parse_cv(self, node, terms, name):
