@@ -310,7 +310,7 @@ class nmrMLmeta(object):
     @staticmethod
     def _urllize_name(accession):
         if accession.startswith('NMR'):
-            return 'http://nmrML.org/nmrCV#{}'.format(accession)
+            return 'http://nmrml.org/cv/v1.0.rc1/nmrCV.owl#{}'.format(accession)
         elif accession.startswith('UO') or accession.startswith('CHEBI'):
             return 'http://purl.obolibrary.org/obo/{}'.format(accession)
         elif accession.startswith('C'):
