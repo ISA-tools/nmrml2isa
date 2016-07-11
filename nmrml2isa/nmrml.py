@@ -251,41 +251,43 @@ class nmrMLmeta(object):
 
         self.read_children(spectrum, terms)
 
-    def _meta_check(self, name):
-
-        if not name in self.meta.keys() or not self.meta[name]:
-            self.meta[name] = {}
-            return self.meta[name]
-        elif not 'entry_list' in self.meta.keys():
-            self.meta[name] = {'entry_list': [ self.meta[name], {} ]}
-            return self.meta[name]['entry_list'][-1]
-        else:
-            self.meta[name]['entry_list'].append({})
-            return self.meta[name]['entry_list'][-1]
-
-    def _meta_update(self, child, entry_point):
-
-        if 'value' in child.attrib.keys():
-            entry_point['value'] = child.attrib['value']
-        if 'name' in child.attrib.keys():
-            entry_point['name'] = child.attrib['name']
-        if 'unitName' in child.attrib.keys():
-            entry_point['unit'] = { 'name': child.attrib['unitName'],
-                                    'ref': child.attrib['unitCvRef'],
-                                    'accession': child.attrib['unitAccession'] }
-        if 'cvRef' in child.attrib.keys():
-            entry_point['ref'] = child.attrib['cvRef']
-            entry_point['accession'] = child.attrib['accession']
 
     def read_children(self, node, terms):
         for childpath, name in terms.items():
             child = node.find(childpath, self.ns)
 
-            entry_point = self._meta_check(name)
+            #entry_point = self._meta_check(name)
 
             if child is not None:
+                extract = self._children_extract(child)
 
-                self._meta_update(child, entry_point)
+                if not name in self.meta.keys() or not self.meta[name]:
+                    self.meta[name] = extract.copy()
+
+                elif not 'entry_list' in self.meta.keys():
+                    self.meta[name] = {'entry_list': [ self.meta[name], extract.copy() ]}
+
+                else:
+                    self.meta[name]['entry_list'].append(extract.copy())
+
+
+    def _children_extract(self, child):
+
+        _dict = dict()
+
+        if 'value' in child.attrib.keys():
+            _dict['value'] = child.attrib['value']
+        if 'name' in child.attrib.keys():
+            _dict['name'] = child.attrib['name']
+        if 'unitName' in child.attrib.keys():
+            _dict['unit'] = { 'name': child.attrib['unitName'],
+                              'ref': child.attrib['unitCvRef'],
+                              'accession': child.attrib['unitAccession'] }
+        if 'cvRef' in child.attrib.keys():
+            _dict['ref'] = child.attrib['cvRef']
+            _dict['accession'] = child.attrib['accession']
+
+        return _dict
 
     @classmethod
     def _urllize(cls, starting_point):
