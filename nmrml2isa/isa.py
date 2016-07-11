@@ -109,17 +109,22 @@ class ISA_Tab(object):
         meta = metalist[0]
         fmt = PermissiveFormatter()
 
+        chained = ChainMap(meta, self.usermeta)
+
         with open(investigation_file, 'r') as i_in:
             with open(new_i_path, "w") as i_out:
                 for l in i_in:
 
-                    ## FORMAT SECTIONS WHERE MORE THAN ONE VALUE IS ACCEPTED
-                    #if l.startswith('Study Person'):
-                    #    person_row = l.strip().split('\t')
-                    #    l = person_row[0]
-                    #    for person in meta['contacts']:
-                    #        l +=  '\t' + fmt.format(person_row[1], study_contact=person)
-                    #    l += '\n'
+                    if "{{" in l:
+                        l, value = l.strip().split('\t')
+                        label = value[3:].split('[')[0]
+
+                        if label in chained:
+                            for k in range(len(chained[label])):
+                                l = '\t'.join([l, value.format(k)])
+                            l += '\n'
+                        else:
+                            l = "\t".join([l, '\"\"', '\n'])
 
                     l = fmt.vformat(l, None, ChainMap(self.isa_env, meta, self.usermeta))
                     i_out.write(l)
