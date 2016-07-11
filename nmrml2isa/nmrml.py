@@ -13,13 +13,25 @@ import xml.etree.ElementTree as etree
 class nmrMLmeta(object):
 
     xpaths = {
-        'instruments': '{root}/s:instrumentConfigurationList/s:instrumentConfiguration',
-        'software':    '{root}/s:softwareList/s:software',
-        'acquisition': '{root}/s:acquisition/s:acquisition1D/s:acquisitionParameterSet',
-        'source_file': '{root}/s:sourceFileList/s:sourceFile',
-        'contacts':    '{root}/s:contactList/s:contact',
-        'processing':  '{root}/s:dataProcessingList/s:dataProcessing/s:processingMethod',
-        'spectrum':    '{root}/s:spectrum/s:spectrum1D'
+        'instruments':    '{root}/s:instrumentConfigurationList/s:instrumentConfiguration',
+        'software':       '{root}/s:softwareList/s:software',
+        'acquisition':    '{root}/s:acquisition/s:acquisition1D/s:acquisitionParameterSet',
+        'source_file':    '{root}/s:sourceFileList/s:sourceFile',
+        'contacts':       '{root}/s:contactList/s:contact',
+        'processing':     '{root}/s:dataProcessingList/s:dataProcessing/s:processingMethod',
+        'spectrum':       '{root}/s:spectrum/s:spectrum1D',
+        'probehead':      '{root}/s:instrumentConfigurationList/s:instrumentConfiguration/s:userParam',
+        'pulse_sequence': '{root}/s:acquisition/s:acquisition1D/s:acquisitionParameterSet/s:pulseSequence/s:userParam',
+    }
+
+    gyromagnetic_table = {
+        'CHEBI_49637': 42.576, # 1H
+        'CHEBI_29237':  6.536, # 2H
+        'CHEBI_36928': 10.705, # 13C
+        'CHEBI_36938':  3.077, # 14N
+        'CHEBI_36934': -4.316, # 15N
+        'CHEBI:33819': -5.772, # 17O
+        'CHEBI:37971': 17.235, # 31P
     }
 
     nmrcv = None
@@ -34,15 +46,14 @@ class nmrMLmeta(object):
         self.tree = etree.parse(in_file, parser=parser)
 
         self._build_env()
-
         self._load_ontology(cached_onto)
 
 
         self.meta = collections.OrderedDict()
-
         self.meta['Sample Name'] = {'value': self.sample}
         self.meta['Derived Spectral Data File'] = {'value': self.in_file}
-        self.meta['MS Assay Name'] = {'value': self.in_file}
+        self.meta['NMR Assay Name'] = {'value': self.in_file}
+        self.meta['Raw Data File'] = {'value': "{}.zip".format(self.sample)}
 
         # Start parsing
         self.instrument()
@@ -51,6 +62,10 @@ class nmrMLmeta(object):
         self.contacts()
         self.processing()
         self.spectrum()
+        self.probehead()
+        self.pulse_sequence()
+
+        self._convert_magnetic_field()
 
         self._urllize(self.meta)
 
@@ -86,7 +101,7 @@ class nmrMLmeta(object):
 
                 manufacturer = next((x for x in self.nmrcv['NMR:1400255'].rchildren() if cv.attrib['name'].startswith(x.name)), None)
                 if manufacturer is not None:
-                    self.meta['Instrument Manufacturer'] = {
+                    self.meta['Instrument manufacturer'] = {
                         'name': manufacturer.name,
                         'accession': manufacturer.id,
                         'ref': 'NMRCV',
@@ -143,17 +158,17 @@ class nmrMLmeta(object):
         acquisition = self.tree.find(self.xpaths['acquisition'].format(**self.env), self.ns)
         if acquisition is None: return
 
-        self.meta['Number of scans'] = {'value': int(acquisition.attrib['numberOfScans'])}
+        self.meta['Number of transients'] = {'value': int(acquisition.attrib['numberOfScans'])}
         self.meta['Number of steady state scans'] = {'value': int(acquisition.attrib['numberOfSteadyStateScans'])}
 
         terms = {'s:sampleAcquisitionTemperature': 'Temperature',
                  's:sampleContainer': 'NMR tube type',
                  's:spinningRate': 'Spinning Rate',
                  's:relaxationDelay': 'Relaxation Delay',
-                 's:pulseSequence/s:userParam': 'Pulse sequence name',
+                 's:pulseSequence': 'Pulse sequence',
                  's:DirectDimensionParameterSet/s:acquisitionNucleus': 'Acquisition Nucleus',
                  's:DirectDimensionParameterSet/s:decouplingNucleus': 'Decoupling Nucleus',
-                 's:DirectDimensionParameterSet/s:effectiveExcitationField': 'Effective Excitation Field',
+                 's:DirectDimensionParameterSet/s:effectiveExcitationField': 'Magnetic field strength',
                  's:DirectDimensionParameterSet/s:sweepWidth': 'Sweep Width',
                  's:DirectDimensionParameterSet/s:pulseWidth': 'Pulse Width',
                  's:DirectDimensionParameterSet/s:irradiationFrequency': 'Irradiation Frequency',
@@ -259,8 +274,6 @@ class nmrMLmeta(object):
         for childpath, name in terms.items():
             child = node.find(childpath, self.ns)
 
-            #entry_point = self._meta_check(name)
-
             if child is not None:
                 extract = self._children_extract(child)
 
@@ -272,6 +285,20 @@ class nmrMLmeta(object):
 
                 else:
                     self.meta[name]['entry_list'].append(extract.copy())
+
+    def probehead(self):
+        """Extracts the userParam ProbeHead if no CV term was found before."""
+        if 'NMR Probe' not in self.meta.keys():
+            probehead = self.tree.find(self.xpaths['probehead'].format(**self.env), self.ns)
+            self.meta['NMR Probe'] = {'name': probehead.attrib['value'], 'ref':'', 'accession':''}
+
+    def pulse_sequence(self):
+        """Extracts the userParam Pulse sequence if no CV term was found before."""
+
+        if 'Pulse sequence' not in self.meta.keys() or not self.meta['Pulse sequence']:
+
+            pulse_sequence = self.tree.find(self.xpaths['pulse_sequence'].format(**self.env), self.ns)
+            self.meta['Pulse sequence'] = {'name': pulse_sequence.attrib['value'], 'ref':'', 'accession':''}
 
     def _children_extract(self, child):
 
@@ -291,6 +318,27 @@ class nmrMLmeta(object):
 
         return _dict
 
+    def _convert_magnetic_field(self):
+        """Convert magnetic field value from mHz to tesla."""
+
+        if not 'Magnetic field strength' in self.meta.keys():
+            return
+
+        if self.meta['Magnetic field strength']['unit']['accession'] != 'UO_0000325':
+            return
+
+        if 'Acquisition Nucleus' in self.meta.keys():
+
+            if self.meta['Acquisition Nucleus']['accession']  in self.gyromagnetic_table.keys():
+
+                mhz   =   float(self.meta['Magnetic field strength']['value'])
+                tesla = mhz / self.gyromagnetic_table[self.meta['Acquisition Nucleus']['accession']]
+
+                self.meta['Magnetic field strength'] = {
+                    'value': "{:4}".format(tesla),
+                    'unit': {'name':'tesla', 'ref':'UO', 'accession':'UO_0000228' }
+                }
+
     @classmethod
     def _urllize(cls, starting_point):
         for k,v in starting_point.items():
@@ -301,10 +349,13 @@ class nmrMLmeta(object):
                     if isinstance(param, dict):
                         cls._urllize(param)
 
+                    elif isinstance(param, list):
+                        for element in param:
+                            cls._urllize(element)
+
                     elif key=='accession':
                         if 'http' not in param:
                             starting_point[k][key] = cls._urllize_name(param)
-
 
             elif k == 'accession':
                 starting_point[k] = cls._urllize_name(v)
