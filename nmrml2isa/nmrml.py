@@ -54,6 +54,10 @@ class nmrMLmeta(object):
 
         self._urllize(self.meta)
 
+        if 'contacts' in self.meta.keys():
+            self.meta['study_contacts'] = self.meta['contacts']['entry_list']
+            del self.meta['contacts']
+
     def _load_ontology(self, cached_onto):
         if self.nmrcv is None:
             if cached_onto is not None:
@@ -251,7 +255,6 @@ class nmrMLmeta(object):
 
         self.read_children(spectrum, terms)
 
-
     def read_children(self, node, terms):
         for childpath, name in terms.items():
             child = node.find(childpath, self.ns)
@@ -269,7 +272,6 @@ class nmrMLmeta(object):
 
                 else:
                     self.meta[name]['entry_list'].append(extract.copy())
-
 
     def _children_extract(self, child):
 
@@ -297,7 +299,7 @@ class nmrMLmeta(object):
                 for key, param in v.items():
 
                     if isinstance(param, dict):
-                        starting_point[k][key] = cls._urllize(param)
+                        cls._urllize(param)
 
                     elif key=='accession':
                         if 'http' not in param:
@@ -322,11 +324,17 @@ class nmrMLmeta(object):
         for cv in node.iterfind('./{cvParam}'.format(**self.env), self.ns):
             for term in terms:
                 if term['hook'](cv):
-                        self.meta[name+' '+term['name']] = {
+                        self.meta[' '.join([name, term['name']])] = {
                             'name': cv.attrib['name'],
                             'ref': cv.attrib['cvRef'],
                             'accession': cv.attrib['accession']
                         }
+                        if 'unitName' in cv.attrib.keys():
+                            self.meta[' '.join([name, term['name']])]['unit'] = {
+                                'name': cv.attrib['unitName'],
+                                'ref': cv.attrib['unitCvRef'],
+                                'accession': cv.attrib['unitAccession'],
+                            }
 
     def _build_env(self):
 

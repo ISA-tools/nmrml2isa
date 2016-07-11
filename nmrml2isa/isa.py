@@ -53,7 +53,10 @@ class ISA_Tab(object):
             header, datum = headers[i], data[i]
 
             if '{{' in datum and 'Term' not in header:
-                entry_list = metalist[0][self.unparameter(header)]['entry_list']
+                entry_list = metalist[0][self.unparameter(header)]['entry_list'] \
+                                if self.unparameter(header) in metalist[0].keys() \
+                                else [ None ]
+
                 hsec, dsec = (headers[i:i+3], data[i:i+3]) \
                                 if headers[i+1] == "Term Source REF" \
                                 else (headers[i:i+1], data[i:i+1])
@@ -83,7 +86,6 @@ class ISA_Tab(object):
 
             for meta in metalist:
                 writer.writerow( [ fmt.vformat(x, None, ChainMap(meta, self.usermeta)) for x in data] )
-
 
     def create_study(self, metalist):
 
