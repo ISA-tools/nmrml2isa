@@ -23,7 +23,7 @@ except ImportError:
 
 import nmrml2isa.isa as isa
 import nmrml2isa.nmrml as nmrml
-
+import nmrml2isa
 
 def parse_task(owl, f, verbose):
     if verbose:
@@ -49,8 +49,11 @@ def run():
     p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)
     p.add_argument('-c', dest='process_count', help='number of processes to spawn (default: nbr of cpu * 4)',
                          action='store', default=None)
+    p.add_argument('--version', action='version', version='nmrml2isa {}'.format(nmrml2isa.__version__))
 
     args = p.parse_args()
+
+    
 
     if not PB_AVAILABLE:
         setattr(args, 'verbose', True)

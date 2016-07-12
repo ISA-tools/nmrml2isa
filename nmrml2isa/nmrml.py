@@ -47,8 +47,8 @@ class nmrMLmeta(object):
 
         self.meta = collections.OrderedDict()
         self.meta['Sample Name'] = {'value': self.sample}
-        self.meta['Derived Spectral Data File'] = {'value': self.in_file}
-        self.meta['NMR Assay Name'] = {'value': self.in_file}
+        self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)}
+        self.meta['NMR Assay Name'] = {'value': os.path.basename(self.in_file)}
         self.meta['Free Induction Decay Data File'] = {'value': "{}.zip".format(self.sample)}
 
         # Start parsing

@@ -53,8 +53,8 @@ before_script:
 script:
   - >
     if [ $EXAMPLE_TYPE = "MTBLS" ]; then
-    mzml2isa -i example_files/$EXAMPLE -o out_folder -s $SLUG;
-    else mzml2isa -i nmrML/examples/$EXAMPLE -o out_folder -s $SLUG;
+    nmrml2isa -i example_files/$EXAMPLE -o out_folder -s $SLUG;
+    else nmrml2isa -i nmrML/examples/$EXAMPLE -o out_folder -s $SLUG;
     fi
   - >
     java -cp ISA-validator-1.6.5/isatools_deps.jar
