@@ -48,7 +48,7 @@ class nmrMLmeta(object):
         self.meta = collections.OrderedDict()
         self.meta['Sample Name'] = {'value': self.sample}
         self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)}
-        self.meta['NMR Assay Name'] = {'value': os.path.basename(self.in_file)}
+        self.meta['NMR Assay Name'] = {'value': self.sample}
         self.meta['Free Induction Decay Data File'] = {'value': "{}.zip".format(self.sample)}
 
         # Start parsing
@@ -273,6 +273,9 @@ class nmrMLmeta(object):
             if child is not None:
                 extract = self._children_extract(child)
 
+                if not extract:
+                    continue
+
                 if not name in self.meta.keys() or not self.meta[name]:
                     self.meta[name] = extract.copy()
 
@@ -302,7 +305,16 @@ class nmrMLmeta(object):
         _dict = dict()
 
         if 'value' in child.attrib.keys():
-            _dict['value'] = child.attrib['value']
+            try:
+                _dict['value'] = float(child.attrib['value'])
+            except ValueError:
+                _dict['value'] = child.attrib['value']
+
+        if 'startValue' in child.attrib.keys() and 'endValue' in child.attrib.keys():
+            start = min(float(child.attrib['startValue']), float(child.attrib['endValue']))
+            end = max(float(child.attrib['startValue']), float(child.attrib['endValue']))
+            _dict['value'] = "{}-{}".format(start, end)
+
         if 'name' in child.attrib.keys():
             _dict['name'] = child.attrib['name']
         if 'unitName' in child.attrib.keys():
@@ -360,11 +372,11 @@ class nmrMLmeta(object):
     @staticmethod
     def _urllize_name(accession):
         if accession.startswith('NMR'):
-            return 'http://nmrml.org/cv/v1.0.rc1/nmrCV.owl#{}'.format(accession)
+            return 'http://nmrML.org/nmrCV#{}'.format(accession)
         elif accession.startswith('UO') or accession.startswith('CHEBI'):
-            return 'http://purl.obolibrary.org/obo/{}'.format(accession)
+            return 'http://purl.obolibrary.org/obo/{}'.format(accession.replace(':', '_'))
         elif accession.startswith('C'):
-            return 'http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#{}'.format(accession)
+            return 'http://ncicb.nci.nih.gov/xml/owl/EVS/Thesaurus.owl#{}'.format(accession.replace(':', '_'))
         return accession
 
     def _parse_cv(self, node, terms, name):
