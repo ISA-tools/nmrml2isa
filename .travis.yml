@@ -1,0 +1,67 @@
+language: python
+
+python:
+  - "3.5"
+  - "2.7"
+env:
+  - EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS1
+  - EXAMPLE="IPB_HopExample/nmrMLs"                EXAMPLE_TYPE=NMRML  SLUG=IPBHV1
+  - EXAMPLE="IPB_HopExample/nmrMLs.v2"             EXAMPLE_TYPE=NMRML  SLUG=IPBHV2
+  - EXAMPLE="jcamp-dx_GABA_withoutFID"             EXAMPLE_TYPE=NMRML  SLUG=JCAMPDX
+  - EXAMPLE="quantification_example"               EXAMPLE_TYPE=NMRML  SLUG=QUANTEX
+  - EXAMPLE="reference_spectra_examples/bmrb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR1
+  - EXAMPLE="reference_spectra_examples/hmdb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR2
+  - EXAMPLE="reference_spectra_examples/metabohub" EXAMPLE_TYPE=NMRML  SLUG=SPECR3
+
+#matrix:
+#  allow_failures:
+#    # Often timeout
+#    - env: STUDY=MTBLS289
+#    - env: STUDY=MTBLS36
+#    - env: STUDY=MTBLS140
+#    - env: STUDY=MTBLS125
+#    - env: STUDY=MTBLS126
+#    - env: STUDY=MTBLS38
+#    # Fail for no know reason (need to investigate)
+#    - env: STUDY=MTBLS273
+#    - env: STUDY=MTBLS137
+#    - env: STUDY=MTBLS228
+
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y default-jre
+  - if [ $EXAMPLE_TYPE = "NMRML" ]; then sudo apt-get install -y curlftpfs; fi
+
+install:
+  - pip install -r requirements-py2.txt
+  - pip install .
+
+before_script:
+  - >
+    if [ $EXAMPLE_TYPE = "NMRML" ]; then
+    git clone https://github.com/nmrML/nmrML --depth 1;
+    else mkdir example_files;
+    curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files;
+    fi
+  - wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip
+  - unzip ISA-validator-1.6.5.zip
+  - wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip
+  - unzip ISAcreatorMetaboLights.zip
+  - mkdir out_folder
+
+
+script:
+  - >
+    if [ $EXAMPLE_TYPE = "MTBLS" ]; then
+    mzml2isa -i example_files/$EXAMPLE -o out_folder -s $SLUG;
+    else mzml2isa -i nmrML/examples/$EXAMPLE -o out_folder -s $SLUG;
+    fi
+  - >
+    java -cp ISA-validator-1.6.5/isatools_deps.jar
+    org.isatools.isatab.manager.SimpleManager validate out_folder/$SLUG
+    Configurations/MetaboLightsConfig20140506/
+
+
+notifications:
+  email:
+    - althonosdev@gmail.com

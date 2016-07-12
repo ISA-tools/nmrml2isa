@@ -3,10 +3,6 @@ import json
 import collections
 import pronto
 import xml.etree.ElementTree as etree
-#from lxml import etree
-
-
-#from nmrml2isa.owl import EasyOwl
 
 
 
@@ -30,8 +26,8 @@ class nmrMLmeta(object):
         'CHEBI_36928': 10.705, # 13C
         'CHEBI_36938':  3.077, # 14N
         'CHEBI_36934': -4.316, # 15N
-        'CHEBI:33819': -5.772, # 17O
-        'CHEBI:37971': 17.235, # 31P
+        'CHEBI_33819': -5.772, # 17O
+        'CHEBI_37971': 17.235, # 31P
     }
 
     nmrcv = None
@@ -53,7 +49,7 @@ class nmrMLmeta(object):
         self.meta['Sample Name'] = {'value': self.sample}
         self.meta['Derived Spectral Data File'] = {'value': self.in_file}
         self.meta['NMR Assay Name'] = {'value': self.in_file}
-        self.meta['Raw Data File'] = {'value': "{}.zip".format(self.sample)}
+        self.meta['Free Induction Decay Data File'] = {'value': "{}.zip".format(self.sample)}
 
         # Start parsing
         self.instrument()
@@ -390,10 +386,12 @@ class nmrMLmeta(object):
     def _build_env(self):
 
         try:
+            # proper method to get namespace through nsmap (lxml)
             self.ns = self.tree.getroot().nsmap
             self.ns['s'] = self.ns[None]
             del self.ns[None]
         except AttributeError:
+            # 'hacked' method to get namespace through root tag (xml.etree)
             self.ns = {'s': self.tree.getroot().tag[1:].split('}')[0] }
 
         self.env = {}
