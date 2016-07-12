@@ -286,15 +286,16 @@ class nmrMLmeta(object):
         """Extracts the userParam ProbeHead if no CV term was found before."""
         if 'NMR Probe' not in self.meta.keys():
             probehead = self.tree.find(self.xpaths['probehead'].format(**self.env), self.ns)
-            self.meta['NMR Probe'] = {'name': probehead.attrib['value'], 'ref':'', 'accession':''}
+            if probehead is not None:
+                self.meta['NMR Probe'] = {'name': probehead.attrib['value'], 'ref':'', 'accession':''}
 
     def pulse_sequence(self):
         """Extracts the userParam Pulse sequence if no CV term was found before."""
 
         if 'Pulse sequence' not in self.meta.keys() or not self.meta['Pulse sequence']:
-
             pulse_sequence = self.tree.find(self.xpaths['pulse_sequence'].format(**self.env), self.ns)
-            self.meta['Pulse sequence'] = {'name': pulse_sequence.attrib['value'], 'ref':'', 'accession':''}
+            if pulse_sequence is not None:
+                self.meta['Pulse sequence'] = {'name': pulse_sequence.attrib['value'], 'ref':'', 'accession':''}
 
     def _children_extract(self, child):
 

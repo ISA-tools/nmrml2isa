@@ -30,7 +30,7 @@ env:
 before_install:
   - sudo apt-get -qq update
   - sudo apt-get install -y default-jre
-  - if [ $EXAMPLE_TYPE = "NMRML" ]; then sudo apt-get install -y curlftpfs; fi
+  - if [ $EXAMPLE_TYPE = "MTBLS" ]; then sudo apt-get install -y curlftpfs; fi
 
 install:
   - pip install -r requirements-py2.txt
