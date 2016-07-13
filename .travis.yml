@@ -15,16 +15,9 @@ env:
 
 matrix:
   allow_failures:
+    - python: "2.7"     # Need to fix the starmap stuff
     - env: SLUG=IPBHV1  # FAM013_AHTM.PROTON_04.nmrML is not valid
-#    - env: STUDY=MTBLS36
-#    - env: STUDY=MTBLS140
-#    - env: STUDY=MTBLS125
-#    - env: STUDY=MTBLS126
-#    - env: STUDY=MTBLS38
-#    # Fail for no know reason (need to investigate)
-#    - env: STUDY=MTBLS273
-#    - env: STUDY=MTBLS137
-#    - env: STUDY=MTBLS228
+  fast-finish: true
 
 before_install:
   - sudo apt-get -qq update
