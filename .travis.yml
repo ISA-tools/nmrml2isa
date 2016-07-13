@@ -15,9 +15,16 @@ env:
 
 matrix:
   allow_failures:
-    - python: "2.7"     # Need to fix the starmap stuff
-    - env: SLUG=IPBHV1  # FAM013_AHTM.PROTON_04.nmrML is not valid
-  fast-finish: true
+      # need to fix the starmap stuff
+    - python: "2.7"
+
+      # FAM013_AHTM.PROTON_04.nmrML is not valid XML
+    - env: EXAMPLE="IPB_HopExample/nmrMLs"                EXAMPLE_TYPE=NMRML  SLUG=IPBHV1
+
+      # bmse000325.nmrML is not valid XML
+    - env: EXAMPLE="reference_spectra_examples/bmrb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR1
+
+  fast_finish: true
 
 before_install:
   - sudo apt-get -qq update
