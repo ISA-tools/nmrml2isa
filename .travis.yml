@@ -13,10 +13,9 @@ env:
   - EXAMPLE="reference_spectra_examples/hmdb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR2
   - EXAMPLE="reference_spectra_examples/metabohub" EXAMPLE_TYPE=NMRML  SLUG=SPECR3
 
-#matrix:
-#  allow_failures:
-#    # Often timeout
-#    - env: STUDY=MTBLS289
+matrix:
+  allow_failures:
+    - env: SLUG=IPBHV1  # FAM013_AHTM.PROTON_04.nmrML is not valid
 #    - env: STUDY=MTBLS36
 #    - env: STUDY=MTBLS140
 #    - env: STUDY=MTBLS125

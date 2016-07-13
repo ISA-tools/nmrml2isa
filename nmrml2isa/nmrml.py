@@ -209,9 +209,9 @@ class nmrMLmeta(object):
         contacts = self.tree.iterfind(self.xpaths['contacts'].format(**self.env), self.ns)
         self.meta['contacts'] = {'entry_list': []}
         for contact in contacts:
-            name = contact.attrib['fullname'].split(' ')
-            if len(name)==1: first_name, last_name, mid = '', *name, ''
-            elif len(name)==2: first_name, last_name, mid = *name, ''
+            name = contact.attrib['fullname'].split(' ', 3)
+            if len(name)==1: first_name, [last_name], mid = '', name, ''
+            elif len(name)==2: [first_name, last_name], mid = name, ''
             else: first_name, mid, last_name = name
 
             self.meta['contacts']['entry_list'].append( {
