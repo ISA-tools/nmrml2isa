@@ -48,7 +48,7 @@ def run():
     #p.add_argument('-n', dest='split', help='do NOT split assay files based on polarity', action='store_false', default=True)
     p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)
     p.add_argument('-c', dest='process_count', help='number of processes to spawn (default: nbr of cpu * 4)',
-                         action='store', default=None)
+                         action='store', default=None, type=int)
     p.add_argument('--version', action='version', version='nmrml2isa {}'.format(nmrml2isa.__version__))
 
     args = p.parse_args()
@@ -98,8 +98,6 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
             30*' ']), end='\n'*(verbose)
         )
 
-    pool = multiprocessing.pool.Pool(process_count or multiprocessing.cpu_count()*4)
-
     metalist = []
     if nmrml_files:
 
@@ -115,9 +113,7 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
 
         # get meta information for all files
         #task = partial(parse_task, owl)
-        metalist = pool.starmap(parse_task, ((owl, x, verbose) for x in nmrml_files))
-
-        pool.close()
+        metalist = [parse_task(owl, x, verbose) for x in nmrml_files]#pool.starmap(parse_task, ((owl, x, verbose) for x in nmrml_files))
 
 
         #if not verbose:
@@ -148,10 +144,6 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
             '[{}] Finished writing ISA-Tab files'.format(datetime.now().time().strftime('%H:%M:%S'), out_dir),
             ' '*30]), end='\n')
 
-        else:
-            if verbose:
-                warnings.warn("No starts were created.", UserWarning)
-        pool.join()
 
     else:
         warnings.warn("No files were found in directory.", UserWarning)
