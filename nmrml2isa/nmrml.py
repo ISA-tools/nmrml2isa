@@ -65,7 +65,7 @@ class nmrMLmeta(object):
 
         self._urllize(self.meta)
 
-        if 'contacts' in self.meta.keys():
+        if 'contacts' in self.meta:
             self.meta['study_contacts'] = self.meta['contacts']['entry_list']
             del self.meta['contacts']
 
@@ -143,7 +143,7 @@ class nmrMLmeta(object):
                               'ref':  soft.attrib['cvRef'],
                               'accession': soft.attrib['accession'] }
 
-                if 'version' in soft.attrib.keys():
+                if 'version' in soft.attrib:
                     return soft_meta, soft.attrib['version']
                 else:
                     return soft_meta, None
@@ -197,7 +197,7 @@ class nmrMLmeta(object):
         for source in source_files:
             source_terms = {}
 
-            if source.attrib['name'] in names.keys():
+            if source.attrib['name'] in names:
                 name = names[source.attrib['name']]
                 self.meta[name+' File'] = {
                     'value': self.sample + source.attrib['location'].split(self.sample)[-1]
@@ -219,7 +219,7 @@ class nmrMLmeta(object):
                 'mid': mid,
                 'last_name': last_name,
                 'mail': contact.attrib['email']
-                          if 'email' in contact.attrib.keys()
+                          if 'email' in contact.attrib
                           else ''
             } )
 
@@ -276,10 +276,10 @@ class nmrMLmeta(object):
                 if not extract:
                     continue
 
-                if not name in self.meta.keys() or not self.meta[name]:
+                if not name in self.meta or not self.meta[name]:
                     self.meta[name] = extract.copy()
 
-                elif not 'entry_list' in self.meta.keys():
+                elif not 'entry_list' in self.meta:
                     self.meta[name] = {'entry_list': [ self.meta[name], extract.copy() ]}
 
                 else:
@@ -287,7 +287,7 @@ class nmrMLmeta(object):
 
     def probehead(self):
         """Extracts the userParam ProbeHead if no CV term was found before."""
-        if 'NMR Probe' not in self.meta.keys():
+        if 'NMR Probe' not in self.meta:
             probehead = self.tree.find(self.xpaths['probehead'].format(**self.env), self.ns)
             if probehead is not None:
                 self.meta['NMR Probe'] = {'name': probehead.attrib['value'], 'ref':'', 'accession':''}
@@ -295,33 +295,33 @@ class nmrMLmeta(object):
     def pulse_sequence(self):
         """Extracts the userParam Pulse sequence if no CV term was found before."""
 
-        if 'Pulse sequence' not in self.meta.keys() or not self.meta['Pulse sequence']:
+        if 'Pulse sequence' not in self.meta or not self.meta['Pulse sequence']:
             pulse_sequence = self.tree.find(self.xpaths['pulse_sequence'].format(**self.env), self.ns)
             if pulse_sequence is not None:
                 self.meta['Pulse sequence'] = {'name': pulse_sequence.attrib['value'], 'ref':'', 'accession':''}
 
     def _children_extract(self, child):
 
-        _dict = dict()
+        _dict = {}
 
-        if 'value' in child.attrib.keys():
+        if 'value' in child.attrib:
             try:
                 _dict['value'] = float(child.attrib['value'])
             except ValueError:
                 _dict['value'] = child.attrib['value']
 
-        if 'startValue' in child.attrib.keys() and 'endValue' in child.attrib.keys():
+        if 'startValue' in child.attrib and 'endValue' in child.attrib:
             start = min(float(child.attrib['startValue']), float(child.attrib['endValue']))
             end = max(float(child.attrib['startValue']), float(child.attrib['endValue']))
             _dict['value'] = "{}-{}".format(start, end)
 
-        if 'name' in child.attrib.keys():
+        if 'name' in child.attrib:
             _dict['name'] = child.attrib['name']
-        if 'unitName' in child.attrib.keys():
+        if 'unitName' in child.attrib:
             _dict['unit'] = { 'name': child.attrib['unitName'],
                               'ref': child.attrib['unitCvRef'],
                               'accession': child.attrib['unitAccession'] }
-        if 'cvRef' in child.attrib.keys():
+        if 'cvRef' in child.attrib:
             _dict['ref'] = child.attrib['cvRef']
             _dict['accession'] = child.attrib['accession']
 
@@ -330,15 +330,15 @@ class nmrMLmeta(object):
     def _convert_magnetic_field(self):
         """Convert magnetic field value from mHz to tesla."""
 
-        if not 'Magnetic field strength' in self.meta.keys():
+        if not 'Magnetic field strength' in self.meta:
             return
 
         if self.meta['Magnetic field strength']['unit']['accession'] != 'UO_0000325':
             return
 
-        if 'Acquisition Nucleus' in self.meta.keys():
+        if 'Acquisition Nucleus' in self.meta:
 
-            if self.meta['Acquisition Nucleus']['accession']  in self.gyromagnetic_table.keys():
+            if self.meta['Acquisition Nucleus']['accession']  in self.gyromagnetic_table:
 
                 mhz   =   float(self.meta['Magnetic field strength']['value'])
                 tesla = mhz / self.gyromagnetic_table[self.meta['Acquisition Nucleus']['accession']]
@@ -389,7 +389,7 @@ class nmrMLmeta(object):
                             'ref': cv.attrib['cvRef'],
                             'accession': cv.attrib['accession']
                         }
-                        if 'unitName' in cv.attrib.keys():
+                        if 'unitName' in cv.attrib:
                             self.meta[' '.join([name, term['name']])]['unit'] = {
                                 'name': cv.attrib['unitName'],
                                 'ref': cv.attrib['unitCvRef'],
