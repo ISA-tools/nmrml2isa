@@ -107,10 +107,10 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
             '[{}] Loading ontology'.format(datetime.now().time().strftime('%H:%M:%S')),
             30*' ']), end='\n'*(verbose)
         )
-        try:
-            owl = pronto.Ontology("http://nmrml.org/cv/v1.0.rc1/nmrCV.owl")
-        except:
-            owl = pronto.Ontology(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nmrCV.owl'))
+        #try:
+        #    owl = pronto.Ontology("http://nmrml.org/cv/v1.0.rc1/nmrCV.owl")
+        #except:
+        owl = pronto.Ontology(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nmrCV.owl'))
 
 
         # get meta information for all files

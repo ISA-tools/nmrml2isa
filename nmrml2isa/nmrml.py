@@ -75,10 +75,10 @@ class nmrMLmeta(object):
                 self.nmrcv = cached_onto
             else:
                 try:
-                    self.nmrcv =  pronto.Ontology('http://nmrml.org/cv/v1.0.rc1/nmrCV.owl')
+                    self.nmrcv =  pronto.Ontology('http://nmrml.org/cv/v1.0.rc1/nmrCV.owl', False)
                 except:
                     self.nmrcv = pronto.Ontology(
-                        os.path.join(os.path.dirname(os.path.abspath(__file__)),'nmrCV.owl')
+                        os.path.join(os.path.dirname(os.path.abspath(__file__)),'nmrCV.owl'), False
                     )
 
     def instrument(self):
