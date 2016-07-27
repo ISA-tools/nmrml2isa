@@ -36,7 +36,6 @@ class nmrMLmeta(object):
 
         # setup lxml parsing
         self.in_file = in_file
-        self.sample = os.path.splitext(os.path.basename(in_file))[0]
 
         parser = etree.XMLParser()
         self.tree = etree.parse(in_file, parser=parser)
@@ -44,10 +43,17 @@ class nmrMLmeta(object):
         self._build_env()
         self._load_ontology(cached_onto)
 
-
         self.meta = collections.OrderedDict()
+
+        try:
+            filename = os.path.basename(in_file.name)
+        except AttributeError:
+            filename = os.path.basename(in_file)
+        finally:
+            self.sample = os.path.splitext(filename)[0]
+            self.meta['Derived Spectral Data File'] = {'value': self.in_file}
+
         self.meta['Sample Name'] = {'value': self.sample}
-        self.meta['Derived Spectral Data File'] = {'value': os.path.basename(self.in_file)}
         self.meta['NMR Assay Name'] = {'value': self.sample}
         self.meta['Free Induction Decay Data File'] = {'value': "{}.zip".format(self.sample)}
 

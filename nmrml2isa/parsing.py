@@ -9,6 +9,8 @@ import argparse
 import textwrap
 import warnings
 import json
+import zipfile
+import tarfile
 from datetime import datetime
 import pronto
 import multiprocessing
@@ -29,7 +31,10 @@ def parse_task(owl, f, verbose):
     if verbose:
         print('[{}] Started  parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), f))
     else:
-        print('\r[{}] Started  parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), os.path.basename(f)), end='')
+        try:
+            print('\r[{}] Started  parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), os.path.basename(f.name)), end='')
+        except AttributeError:
+            print('\r[{}] Started  parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), os.path.basename(f)), end='')
     n = nmrml.nmrMLmeta(f, owl).meta
     if verbose:
         print('[{}] Finished parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), f))
@@ -53,7 +58,7 @@ def run():
 
     args = p.parse_args()
 
-    
+
 
     if not PB_AVAILABLE:
         setattr(args, 'verbose', True)
@@ -67,9 +72,6 @@ def run():
                #args.usermeta if args.usermeta else {},
                #args.split,
                args.verbose, args.process_count)
-
-
-
 
 def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=None):
     """ Parses every study from *in_dir* and then creates ISA files.
@@ -87,11 +89,23 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
             30*' ']), end='\n'*(verbose)
         )
 
-    # get mzML file in the example_files folder
-    nmrml_path = os.path.join(in_dir, "*.nmrML")
 
-    nmrml_files = [mw for mw in glob.glob(nmrml_path)]
-    nmrml_files.sort()
+    if os.path.isfile(in_dir) and tarfile.is_tarfile(in_dir):
+        compr = True
+        nmrml_files = compr_extract(in_dir, "tar")
+        nmrml_files.sort(key=lambda x: x.name)
+    elif os.path.isfile(in_dir) and zipfile.is_zipfile(in_dir):
+        compr = True
+        nmrml_files = compr_extract(in_dir, "zip")
+        nmrml_files.sort(key=lambda x: x.name)
+    else:
+        compr = False
+        nmrml_path = os.path.join(in_dir, "*.nmrML")
+        if verbose:
+            print(mzml_path)
+        nmrml_files = [nmrml for nmrml in glob.glob(nmrml_path)]
+
+        nmrml_files.sort()
 
     print(''.join(['\r'*(not verbose),
             '[{}] Creating multiproccessing Pool'.format(datetime.now().time().strftime('%H:%M:%S')),
@@ -149,6 +163,39 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
         warnings.warn("No files were found in directory.", UserWarning)
         #print("No files were found.")
 
+
+
+class _TarFile(object):
+
+    def __init__(self, name, buffered_reader):
+        self.name = name
+        self.BufferedReader = buffered_reader
+
+    def __getattr__(self, attr):
+        if attr=="name":
+            return self.name
+        return getattr(self.BufferedReader, attr)
+
+def compr_extract(compr_pth, type_):
+    # extrac zip or tar(gz) files into python tar or zip objects
+
+    filend = ('.nmrml')
+    if type_ == "zip":
+        comp = zipfile.ZipFile(compr_pth)
+        cfiles = [comp.open(f) for f in comp.namelist() if f.lower().endswith(filend)]
+        filelist = [f.filename for f in comp.filelist]
+    else:
+        comp = tarfile.open(compr_pth, 'r:*')
+        #cfiles = [comp.extractfile(m) for m in comp.getmembers() if m.name.lower().endswith(filend)]
+
+        cfiles = [_TarFile(m.name, comp.extractfile(m)) for m in comp.getmembers() if m.name.lower().endswith(filend)]
+        filelist = [f for f in comp.getnames()]
+
+    # And add these file names as additional attribute the compression tar or zip objects
+    for cf in cfiles:
+        cf.filelist = filelist
+
+    return cfiles
 
 
 
