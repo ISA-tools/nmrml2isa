@@ -70,7 +70,7 @@ Study Protocol Name	"Extraction"	"NMR sample"	"NMR spectroscopy"	"NMR assay"	"Da
 Study Protocol Type	"Extraction"	"NMR sample"	"NMR spectroscopy"	"NMR assay"	"Data transformation"	"Metabolite identification"	"Sample collection"
 Study Protocol Type Term Accession Number	""	""	""	""	""	""	""
 Study Protocol Type Term Source REF	""	""	""	""	""	""	""
-Study Protocol Description	"{description[extraction]}"	"{description[nmr_sample]}"	"{description[nmr_spectro]}"	"{description[nmr_assay]}"	"{description[data_trans]}"	"{description[metabo_id]}"	""
+Study Protocol Description	"{description[extraction]}"	"{description[nmr_sample]}"	"{description[nmr_spec]}"	"{description[nmr_assay]}"	"{description[data_trans]}"	"{description[metabo_id]}"	"{description[sample_collec]}"
 Study Protocol URI	""	""	""	""	""	""	""
 Study Protocol Version	""	""	""	""	""	""	""
 Study Protocol Parameters Name	"Extraction Method"	"NMR tube type;Temperature;Sample pH;Solvent"	"Magnetic field strength;Pulse sequence name;Instrument;NMR Probe;Number of transients"	""	""	""	""
