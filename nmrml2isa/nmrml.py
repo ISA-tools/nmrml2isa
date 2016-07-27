@@ -344,7 +344,7 @@ class nmrMLmeta(object):
                 tesla = mhz / self.gyromagnetic_table[self.meta['Acquisition Nucleus']['accession']]
 
                 self.meta['Magnetic field strength'] = {
-                    'value': "{:4}".format(tesla),
+                    'value': "{:.3f}".format(tesla),
                     'unit': {'name':'tesla', 'ref':'UO', 'accession':'UO_0000228' }
                 }
 
