@@ -91,15 +91,12 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
 
 
     if os.path.isfile(in_dir) and tarfile.is_tarfile(in_dir):
-        compr = True
         nmrml_files = compr_extract(in_dir, "tar")
         nmrml_files.sort(key=lambda x: x.name)
     elif os.path.isfile(in_dir) and zipfile.is_zipfile(in_dir):
-        compr = True
         nmrml_files = compr_extract(in_dir, "zip")
         nmrml_files.sort(key=lambda x: x.name)
     else:
-        compr = False
         nmrml_path = os.path.join(in_dir, "*.nmrML")
         if verbose:
             print(mzml_path)
