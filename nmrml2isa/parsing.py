@@ -98,10 +98,7 @@ def full_parse(in_dir, out_dir, study_identifer, verbose=False, process_count=No
         nmrml_files.sort(key=lambda x: x.name)
     else:
         nmrml_path = os.path.join(in_dir, "*.nmrML")
-        if verbose:
-            print(mzml_path)
         nmrml_files = [nmrml for nmrml in glob.glob(nmrml_path)]
-
         nmrml_files.sort()
 
     print(''.join(['\r'*(not verbose),
