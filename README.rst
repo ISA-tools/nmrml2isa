@@ -5,7 +5,7 @@ Parser to get meta information from nmrML file and parse relevant information to
 ''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
 
 
-|Version| |Py versions| |Git| |Build Status| |License| |RTD doc|
+|Version| |Py versions| |Git| |Build Status| |License| |RTD doc| |DOI|
 
 
 Overview
@@ -104,3 +104,6 @@ Or within a python program with the **nmrml** submodule:
 
 .. |RTD doc| image:: https://img.shields.io/badge/documentation-RTD-71B360.svg?style=flat&maxAge=2592000
    :target: http://2isa.readthedocs.io/en/latest/nmrml2isa/index.html
+
+.. |DOI| image:: https://zenodo.org/badge/23304/althonos/nmrml2isa.svg
+   :target: https://zenodo.org/badge/latestdoi/23304/althonos/nmrml2isa
