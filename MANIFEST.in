@@ -1,3 +1,4 @@
 include README.rst
 include nmrml2isa/*.owl
 include nmrml2isa/default/*.txt
+include requirements*.txt
