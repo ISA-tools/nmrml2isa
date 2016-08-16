@@ -4,7 +4,8 @@ python:
   - "3.5"
   - "2.7"
 env:
-  - EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS1
+  - EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS
+  - EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS1  META=true
   - EXAMPLE="IPB_HopExample/nmrMLs"                EXAMPLE_TYPE=NMRML  SLUG=IPBHV1
   - EXAMPLE="IPB_HopExample/nmrMLs.v2"             EXAMPLE_TYPE=NMRML  SLUG=IPBHV2
   - EXAMPLE="jcamp-dx_GABA_withoutFID"             EXAMPLE_TYPE=NMRML  SLUG=JCAMPDX
@@ -51,15 +52,22 @@ before_script:
 
 script:
   - >
+    if [ $META ]; then
+    echo '{"Extraction Method": {"name": "MetaTest"}}' > meta.json;
+    fi
+  - >
     if [ $EXAMPLE_TYPE = "MTBLS" ]; then
-    nmrml2isa -i example_files/$EXAMPLE -o out_folder -s $SLUG;
+    nmrml2isa -i example_files/$EXAMPLE -o out_folder -s $SLUG -m meta.json;
     else nmrml2isa -i nmrML/examples/$EXAMPLE -o out_folder -s $SLUG;
     fi
   - >
     java -cp ISA-validator-1.6.5/isatools_deps.jar
     org.isatools.isatab.manager.SimpleManager validate out_folder/$SLUG
     Configurations/MetaboLightsConfig20140506/
-
+  - >
+    if [ $META ]; then
+    cat out_folder/$SLUG/a_*.txt | grep "MetaTest" -c;
+    fi
 
 notifications:
   email:
