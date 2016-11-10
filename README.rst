@@ -1,10 +1,5 @@
 nmrml2isa
 =========
-
-Parser to get meta information from nmrML file and parse relevant information to an ISA-Tab structure
-''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''''
-
-
 |Version| |Py versions| |Git| |Build Status| |License| |RTD doc| |DOI|
 
 

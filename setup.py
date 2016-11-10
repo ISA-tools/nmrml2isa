@@ -11,7 +11,7 @@ setup(
     name='nmrml2isa',
     version=nmrml2isa.__version__,
     packages=find_packages(),
-    py_modules=['mzml2isa'],
+    py_modules=['nmrml2isa'],
 
     author=nmrml2isa.__author__,
 
