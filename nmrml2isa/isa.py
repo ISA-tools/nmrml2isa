@@ -14,7 +14,7 @@ from .utils import ChainMap, PermissiveFormatter
 
 class ISA_Tab(object):
 
-    def __init__(self, out_dir, name, usermeta=None):
+    def __init__(self, out_dir, name, usermeta=None, template_dir=None):
 
         # Create one or several study files / one or several study section in investigation
 
@@ -26,6 +26,7 @@ class ISA_Tab(object):
             'Study file name': 's_{}.txt'.format(name),
             'Assay file name': 'a_{}_metabolite_profiling_NMR_spectroscopy.txt'.format(name),
             'default_path': os.path.join(dirname, 'default'),
+            'template_path': template_dir or os.path.join(dirname, 'default')
         }
 
     def write(self, metalist):
@@ -46,7 +47,7 @@ class ISA_Tab(object):
 
     def make_assay_template(self, metalist):
 
-        template_a_path = os.path.join(self.isa_env['default_path'], 'a_nmrML.txt')
+        template_a_path = os.path.join(self.isa_env['template_path'], 'a_nmrML.txt')
 
         with open(template_a_path, 'r') as a_in:
             headers, data = [x.strip().replace('"', '').split('\t') for x in a_in.readlines()]
@@ -92,7 +93,7 @@ class ISA_Tab(object):
 
     def create_study(self, metalist):
 
-        template_s_path = os.path.join(self.isa_env['default_path'], 's_nmrML.txt')
+        template_s_path = os.path.join(self.isa_env['template_path'], 's_nmrML.txt')
         new_s_path = os.path.join(self.isa_env['out_dir'], self.isa_env['Study file name'])
 
         fmt = PermissiveFormatter()
@@ -106,7 +107,7 @@ class ISA_Tab(object):
                 s_out.write(fmt.vformat(data, None, ChainMap(meta, self.usermeta)))
 
     def create_investigation(self, metalist):
-        investigation_file = os.path.join(self.isa_env['default_path'], 'i_nmrML.txt')
+        investigation_file = os.path.join(self.isa_env['template_path'], 'i_nmrML.txt')
         new_i_path = os.path.join(self.isa_env['out_dir'], 'i_Investigation.txt')
 
         meta = metalist[0]

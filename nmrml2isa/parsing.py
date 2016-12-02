@@ -97,12 +97,12 @@ def convert(in_path, out_path, study_identifier, **kwargs):
         jobs (int, optional): the number of jobs to use [default: 1]
         template_directory (str, optional): the path to a directory
             containing custom templates to use when importing ISA tab
-            [default: None] [not yet implemented]
+            [default: None]
         verbose (bool): display more output [default: True]
     """
     verbose = kwargs.get('verbose', True)
     jobs = kwargs.get('jobs', 1)
-    #template_directory = kwargs.get('template_directory', None)
+    template_directory = kwargs.get('template_directory', None)
 
     # load the nmr controlled vocabulary
     NMR_CV = pronto.Ontology(NMR_CV_PATH, False)
@@ -143,7 +143,7 @@ def convert(in_path, out_path, study_identifier, **kwargs):
         if metalist:
             if verbose:
                 print("Dumping nmrML meta information into ISA-Tab structure")
-            isa_tab = ISA_Tab(out_path, study_identifier, usermeta=meta_loader.usermeta)#, template_directory=template_directory)
+            isa_tab = ISA_Tab(out_path, study_identifier, usermeta=meta_loader.usermeta, template_directory=template_directory)
             isa_tab.write(metalist)
 
     else:
@@ -168,7 +168,7 @@ def main(argv=None):
     p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', default=None, required=False)#, type=json.loads)
     p.add_argument('-j', dest='jobs', help='launch different processes for parsing', action='store', required=False, default=1, type=int)
     p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='once', required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
-    #p.add_argument('-t', dest='template_dir', help='directory containing default template files', action='store', default=None)
+    p.add_argument('-t', dest='template_dir', help='directory containing default template files', action='store', default=None)
     p.add_argument('--version', action='version', version='nmrml2isa {}'.format(__version__))
     p.add_argument('-v', dest='verbose', help="show more output (default if progressbar2 is not installed)", action='store_true', default=False)
 
@@ -187,7 +187,7 @@ def main(argv=None):
         warnings.filterwarnings(args.wrng_ctrl)
         convert(args.in_path, args.out_path, args.study_id,
            usermeta=args.usermeta, verbose=args.verbose,
-           jobs=args.jobs, #template_directory=args.template_dir
+           jobs=args.jobs, template_directory=args.template_dir
         )
 
 
