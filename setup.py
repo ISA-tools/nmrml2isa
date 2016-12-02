@@ -20,9 +20,7 @@ setup(
     description="nmrml2isa - nmrML to ISA-Tab parsing tool",
     long_description=open('README.rst').read(),
 
-    install_requires=open('requirements.txt').read().splitlines()
-                      if sys.version_info[0]==3 \
-                      else open('requirements-py2.txt').read().splitlines(),
+    install_requires=open('requirements.txt').read().splitlines(),
 
     include_package_data=True,
 
