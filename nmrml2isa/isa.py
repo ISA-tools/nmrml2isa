@@ -1,13 +1,11 @@
+from __future__ import absolute_import
+
 import string
 import os
 import csv
 
-try:
-    from collections import ChainMap
-except ImportError:
-    from chainmap import ChainMap
-
-import nmrml2isa
+from . import __version__, __name__
+from .utils import ChainMap, PermissiveFormatter
 
 class ISA_Tab(object):
 
@@ -29,8 +27,8 @@ class ISA_Tab(object):
 
         self.isa_env['Platform'] = next((meta['Instrument'] for meta in metalist if 'Instrument' in meta), '')
 
-        self.isa_env['Converter'] = nmrml2isa.__name__
-        self.isa_env['Converter version'] = nmrml2isa.__version__
+        self.isa_env['Converter'] = __name__,
+        self.isa_env['Converter version'] = __version__
 
         if not os.path.exists(self.isa_env['out_dir']):
             os.makedirs(self.isa_env['out_dir'])
@@ -131,29 +129,6 @@ class ISA_Tab(object):
 
     @staticmethod
     def unparameter(string):
-        return string.replace('Parameter Value[', '').replace(']', '')
+        return string.strip()[16:-1]
 
 
-
-class PermissiveFormatter(string.Formatter):
-    """A formatter that replace wrong and missing key with a blank."""
-    def __init__(self, missing='', bad_fmt=''):
-        self.missing, self.bad_fmt=missing, bad_fmt
-
-    def get_field(self, field_name, args, kwargs):
-        # Handle a key not found
-
-        try:
-            val=super(PermissiveFormatter, self).get_field(field_name, args, kwargs)
-        except (KeyError, AttributeError, IndexError, TypeError):
-            val=None,field_name
-        return val
-
-    def format_field(self, value, spec):
-        # handle an invalid format
-        if value==None: return self.missing
-        try:
-            return super(PermissiveFormatter, self).format_field(value, spec)
-        except ValueError:
-            if self.bad_fmt is not None: return self.bad_fmt
-            else: raise

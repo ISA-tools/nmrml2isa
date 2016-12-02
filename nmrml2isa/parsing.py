@@ -1,5 +1,8 @@
 # coding: utf-8
-from __future__ import print_function
+from __future__ import (
+    print_function,
+    absolute_import,
+)
 
 import sys
 import os
@@ -14,7 +17,7 @@ from datetime import datetime
 import pronto
 import multiprocessing
 import multiprocessing.pool
-from functools import partial
+import functools
 
 try:
     import progressbar as pb
@@ -22,9 +25,10 @@ try:
 except ImportError:
     PB_AVAILABLE = False
 
-import nmrml2isa.isa as isa
-import nmrml2isa.nmrml as nmrml
-import nmrml2isa
+from . import __version__
+from .isa import ISA_Tab
+from .nmrml import nmrMLmeta
+
 
 def parse_task(owl, f, verbose):
     if verbose:
@@ -34,12 +38,12 @@ def parse_task(owl, f, verbose):
             print('\r[{}] Started  parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), os.path.basename(f.name)), end='')
         except AttributeError:
             print('\r[{}] Started  parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), os.path.basename(f)), end='')
-    n = nmrml.nmrMLmeta(f, owl).meta
+    n = nmrMLmeta(f, owl).meta
     if verbose:
         print('[{}] Finished parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), f))
     return n
 
-def run():
+def main():
     """ Runs **mzml2isa** from the command line"""
     p = argparse.ArgumentParser(prog='nmrml2isa',
                             formatter_class=argparse.RawDescriptionHelpFormatter,
@@ -53,7 +57,7 @@ def run():
     p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)
     p.add_argument('-c', dest='process_count', help='number of processes to spawn (default: nbr of cpu * 4)',
                          action='store', default=None, type=int)
-    p.add_argument('--version', action='version', version='nmrml2isa {}'.format(nmrml2isa.__version__))
+    p.add_argument('--version', action='version', version='nmrml2isa {}'.format(__version__))
 
     args = p.parse_args()
 
@@ -83,7 +87,7 @@ def run():
     full_parse(args.in_dir, args.out_dir, args.study_name,
                usermeta,args.verbose, args.process_count)
 
-def full_parse(in_dir, out_dir, study_identifer, usermeta=None, verbose=False, process_count=None):
+def convert(in_dir, out_dir, study_identifer, usermeta=None, verbose=False, process_count=None):
     """ Parses every study from *in_dir* and then creates ISA files.
 
     A new folder is created in the out directory bearing the name of
@@ -138,7 +142,7 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta=None, verbose=False, p
             print(''.join(['\r'*(not verbose),
             '[{}] Writing ISA-Tab files'.format(datetime.now().time().strftime('%H:%M:%S')),
             ' '*30]), end='\n'*verbose)
-            isa_tab_create = isa.ISA_Tab(out_dir, study_identifer, usermeta).write(metalist)
+            isa_tab_create = ISA_Tab(out_dir, study_identifer, usermeta).write(metalist)
 
             print(''.join(['\r'*(not verbose),
             '[{}] Finished writing ISA-Tab files'.format(datetime.now().time().strftime('%H:%M:%S'), out_dir),
@@ -150,41 +154,19 @@ def full_parse(in_dir, out_dir, study_identifer, usermeta=None, verbose=False, p
         #print("No files were found.")
 
 
+#### DEPRECATED
+@functools.wraps(main)
+def run(*args, **kwargs):
+    warnings.warn("nmrml2isa.parsing.run is deprecated, use "
+                  "nmrml2isa.parsing.main instead", DeprecationWarning)
+    main(*args, **kwargs)
 
-class _TarFile(object):
-
-    def __init__(self, name, buffered_reader):
-        self.name = name
-        self.BufferedReader = buffered_reader
-
-    def __getattr__(self, attr):
-        if attr=="name":
-            return self.name
-        return getattr(self.BufferedReader, attr)
-
-def compr_extract(compr_pth, type_):
-    # extrac zip or tar(gz) files into python tar or zip objects
-
-    filend = ('.nmrml')
-    if type_ == "zip":
-        comp = zipfile.ZipFile(compr_pth)
-        cfiles = [comp.open(f) for f in comp.namelist() if f.lower().endswith(filend)]
-        filelist = [f.filename for f in comp.filelist]
-    else:
-        comp = tarfile.open(compr_pth, 'r:*')
-        #cfiles = [comp.extractfile(m) for m in comp.getmembers() if m.name.lower().endswith(filend)]
-
-        cfiles = [_TarFile(m.name, comp.extractfile(m)) for m in comp.getmembers() if m.name.lower().endswith(filend)]
-        filelist = [f for f in comp.getnames()]
-
-    # And add these file names as additional attribute the compression tar or zip objects
-    for cf in cfiles:
-        cf.filelist = filelist
-
-    return cfiles
-
-
+@functools.wraps(convert)
+def full_parse(*args, **kwargs):
+    warnings.warn("nmrml2isa.parsing.full_parse is deprecated, use "
+                  "nmrml2isa.parsing.convert instead", DeprecationWarning)
+    convert(*args, **kwargs)
 
 
 if __name__ == '__main__':
-    run()
+    main()
