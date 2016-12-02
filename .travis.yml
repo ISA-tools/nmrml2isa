@@ -1,11 +1,19 @@
+sudo: false
 language: python
 python:
 - '3.5'
 - '2.7'
 
+cache:
+  pip: true
+  directories:
+  - $HOME/nmrML
+  - $HOME/MetaboLightsConfig
+  - $HOME/MetaboLightsStudies
+
 env:
-- EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS   DEPLOY=true
-- EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS1  META=true
+- EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS1   DEPLOY=true
+- EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS1   META=true
 - EXAMPLE="IPB_HopExample/nmrMLs"                EXAMPLE_TYPE=NMRML  SLUG=IPBHV1
 - EXAMPLE="IPB_HopExample/nmrMLs.v2"             EXAMPLE_TYPE=NMRML  SLUG=IPBHV2
 - EXAMPLE="jcamp-dx_GABA_withoutFID"             EXAMPLE_TYPE=NMRML  SLUG=JCAMPDX
@@ -21,43 +29,22 @@ matrix:
   - env: EXAMPLE="reference_spectra_examples/bmrb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR1
   fast_finish: true
 
-before_install:
-- sudo apt-get -qq update
-- sudo apt-get install -y default-jre
-- if [ $EXAMPLE_TYPE = "MTBLS" ]; then sudo apt-get install -y curlftpfs; fi
-
 install:
-- pip install -r requirements-py2.txt
+- pip install https://github.com/ISA-tools/isa-api/archive/py2.zip
+- pip install -r requirements.txt
 - pip install .
 
 before_script:
-- 'if [ $EXAMPLE_TYPE = "NMRML" ]; then git clone https://github.com/nmrML/nmrML --depth
-  1; else mkdir example_files; curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public
-  example_files; fi
+- if [ ! -d $HOME/MetaboLightsConfig ]; then wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/configurations/MetaboLightsConfig20140506/*.xml -P $HOME/MetaboLightsConfig/; fi
+- if [ $EXAMPLE_TYPE=NMRML ] && [ ! -d $HOME/nmrML ]; then git clone https://github.com/nmrML/nmrML $HOME/nmrML; fi
+- if [ $EXAMPLE_TYPE=MTBLS ] && [ ! -d $HOME/MetaboLightsStudies/$EXAMPLE ]; then wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/$EXAMPLE/* -P $HOME/MetaboLightsStudies/$EXAMPLE; fi
+- if [ $META ]; then echo '{"Extraction Method": {"name": "MetaTest"}}' > meta.json; fi
 
-'
-- wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip
-- unzip ISA-validator-1.6.5.zip
-- wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip
-- unzip ISAcreatorMetaboLights.zip
-- mkdir out_folder
+
 script:
-- 'if [ $META ]; then echo ''{"Extraction Method": {"name": "MetaTest"}}'' > meta.json;
-  fi
+- if [ $EXAMPLE_TYPE = "MTBLS" ]; then nmrml2isa -i $HOME/MetaboLightsStudies/$EXAMPLE -o out_folder -s $SLUG -m meta.json; else nmrml2isa -i $HOME/nmrML/examples/$EXAMPLE -o out_folder -s $SLUG; fi
+- if [ $META ]; then cat out_folder/$SLUG/a_*.txt | grep "MetaTest" -c; fi
 
-'
-- 'if [ $EXAMPLE_TYPE = "MTBLS" ]; then nmrml2isa -i example_files/$EXAMPLE -o out_folder
-  -s $SLUG -m meta.json; else nmrml2isa -i nmrML/examples/$EXAMPLE -o out_folder -s
-  $SLUG; fi
-
-'
-- 'java -cp ISA-validator-1.6.5/isatools_deps.jar org.isatools.isatab.manager.SimpleManager
-  validate out_folder/$SLUG Configurations/MetaboLightsConfig20140506/
-
-'
-- 'if [ $META ]; then cat out_folder/$SLUG/a_*.txt | grep "MetaTest" -c; fi
-
-'
 notifications:
   email:
   - althonosdev@gmail.com
