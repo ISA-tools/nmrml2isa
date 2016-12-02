@@ -36,7 +36,7 @@ install:
 
 before_script:
 - if [ ! -d $HOME/MetaboLightsConfig ]; then wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/configurations/MetaboLightsConfig20140506/*.xml -P $HOME/MetaboLightsConfig/; fi
-- if [ $EXAMPLE_TYPE == NMRML ] && [ ! -d $HOME/nmrML ]; then git clone https://github.com/nmrML/nmrML $HOME/nmrML; fi
+- if [ $EXAMPLE_TYPE == NMRML ] && [ ! -d $HOME/nmrML/examples ]; then git clone https://github.com/nmrML/nmrML $HOME/nmrML; fi
 - if [ $EXAMPLE_TYPE == MTBLS ] && [ ! -d $HOME/MetaboLightsStudies/$EXAMPLE ]; then wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/$EXAMPLE/* -P $HOME/MetaboLightsStudies/$EXAMPLE; fi
 - 'if [ $META ]; then echo ''{"Extraction Method": {"name": "MetaTest"}}'' > meta.json; fi'
 
@@ -44,6 +44,7 @@ before_script:
 script:
 - if [ $EXAMPLE_TYPE == MTBLS ]; then nmrml2isa -i $HOME/MetaboLightsStudies/$EXAMPLE -o out_folder -s $SLUG -m meta.json; else nmrml2isa -i $HOME/nmrML/examples/$EXAMPLE -o out_folder -s $SLUG; fi
 - if [ $META ]; then cat out_folder/$SLUG/a_*.txt | grep "MetaTest" -c; fi
+- python scripts/validate.py out_folder/$SLUG $HOME/MetaboLightsConfig
 
 notifications:
   email:
