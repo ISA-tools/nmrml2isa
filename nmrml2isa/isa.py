@@ -1,10 +1,15 @@
-from __future__ import absolute_import
+# coding: utf-8
+from __future__ import (
+    print_function,
+    absolute_import,
+    unicode_literals,
+)
 
 import string
 import os
 import csv
 
-from . import __version__, __name__
+from . import __version__, __author__, __email__, __name__
 from .utils import ChainMap, PermissiveFormatter
 
 class ISA_Tab(object):

@@ -1,10 +1,16 @@
-from __future__ import absolute_import
+# coding: utf-8
+from __future__ import (
+    print_function,
+    absolute_import,
+    unicode_literals,
+)
 
 import os
 import json
 import collections
 import pronto
 
+from . import __version__, __author__, __email__
 from .utils import etree
 
 

@@ -1,7 +1,16 @@
+# coding: utf-8
+from __future__ import (
+    print_function,
+    absolute_import,
+    unicode_literals,
+)
+
 import six
 import string
 import tarfile
 import collections
+
+from . import __version__, __author__, __email__
 
 # GET BEST AVAILABLE XML PARSER
 try:
@@ -89,7 +98,7 @@ def compr_extract(compr_pth):
         zipfile.ZipFile: if the file is a zipped file
     """
 
-    filend = ('.nmrML')
+    filend = ('.nmrml')
     if zipfile.is_zipfile(compr_pth):
         comp = zipfile.ZipFile(compr_pth)
         cfiles = [comp.open(f) for f in comp.namelist() if f.lower().endswith(filend)]

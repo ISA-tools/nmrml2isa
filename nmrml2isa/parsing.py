@@ -2,6 +2,7 @@
 from __future__ import (
     print_function,
     absolute_import,
+    unicode_literals,
 )
 
 import sys
@@ -25,7 +26,7 @@ try:
 except ImportError:
     PB_AVAILABLE = False
 
-from . import __version__
+from . import __version__, __author__, __email__
 from .isa import ISA_Tab
 from .nmrml import nmrMLmeta
 
