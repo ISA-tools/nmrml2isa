@@ -80,12 +80,12 @@ class nmrMLmeta(object):
             if cached_onto is not None:
                 self.nmrcv = cached_onto
             else:
-                try:
-                    self.nmrcv =  pronto.Ontology('http://nmrml.org/cv/v1.0.rc1/nmrCV.owl', False)
-                except:
-                    self.nmrcv = pronto.Ontology(
-                        os.path.join(os.path.dirname(os.path.abspath(__file__)),'nmrCV.owl'), False
-                    )
+                # try:
+                #     self.nmrcv =  pronto.Ontology('http://nmrml.org/cv/v1.0.rc1/nmrCV.owl', False)
+                # except:
+                self.nmrcv = pronto.Ontology(
+                    os.path.join(os.path.dirname(os.path.abspath(__file__)),'nmrCV.owl'), False
+                )
 
     def instrument(self):
         """Parses the instrument model, manufacturer and software"""
