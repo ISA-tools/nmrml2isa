@@ -14,7 +14,7 @@ from .utils import ChainMap, PermissiveFormatter
 
 class ISA_Tab(object):
 
-    def __init__(self, out_dir, name, usermeta=None, template_dir=None):
+    def __init__(self, out_dir, name, usermeta=None, template_directory=None):
 
         # Create one or several study files / one or several study section in investigation
 
@@ -26,7 +26,7 @@ class ISA_Tab(object):
             'Study file name': 's_{}.txt'.format(name),
             'Assay file name': 'a_{}_metabolite_profiling_NMR_spectroscopy.txt'.format(name),
             'default_path': os.path.join(dirname, 'default'),
-            'template_path': template_dir or os.path.join(dirname, 'default')
+            'template_path': template_directory or os.path.join(dirname, 'default')
         }
 
     def write(self, metalist):

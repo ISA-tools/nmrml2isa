@@ -10,6 +10,7 @@ import openpyxl
 import six
 import os
 import collections
+import warnings
 
 from . import (
     __author__,
@@ -18,38 +19,43 @@ from . import (
     __version__,
 )
 
+
+
+
+
+
 class UserMetaLoader(object):
 
     CATEGORIZED_MAP = collections.OrderedDict([
 
         ("Assay Parameters", collections.OrderedDict([
 
-            ("Chromatography Instrument Name", [
-                ("Chromatography Instrument", "name"), False,
+            ("Extraction Method Name", [
+                ("Extraction Method", "name"), False,
             ]),
 
-            ("Chromatography Instrument Accession Number", [
-                ("Chromatography", "accession"), False,
+            ("Extraction Method Accession Number", [
+                ("Extraction Method", "accession"), False,
             ]),
 
-            ("Chromatography Instrument Term Source REF", [
-                ("Chromatography Instrument", "ref"), False,
+            ("Extraction Method Term Source REF", [
+                ("Extraction Method Instrument", "ref"), False,
             ]),
 
-            ("Column model", [
-                ("Column model", "value"), False,
+            ("Label Name", [
+                ("Label", "name"), False,
             ]),
 
-            ("Column type", [
-                ("Column type", "value"), False,
+            ("Label Accession Number", [
+                ("Label", "accession"), False,
             ]),
 
-            ("Derivatization", [
-                ("Derivatization", "value"), False,
+            ("Label Term Source REF", [
+                ("Label", "ref"), False,
             ]),
 
-            ("Post Extraction", [
-                ("Post Extraction", "value"), False,
+            ("Sample pH", [
+                ("Sample pH", "value"), False,
             ]),
 
         ])),
@@ -96,10 +102,6 @@ class UserMetaLoader(object):
 
         ("Protocol Description", {
 
-            "Chromatography Description": [
-                ("description", "chroma"), False,
-            ],
-
             "Data Transformation Description": [
                 ("description", "data_trans"), False,
             ],
@@ -114,6 +116,18 @@ class UserMetaLoader(object):
 
             "Metabolite Identification Description": [
                 ("description", "metabo_id"), False,
+            ],
+
+            "NMR Assay Description": [
+                ("description", "nmr_assay"), False,
+            ],
+
+            "NMR Sample Description": [
+                ("description", "nmr_sample"), False,
+            ],
+
+            "NMR Spectroscopy Description": [
+                ("description", "nmr_spec"), False,
             ],
 
             "Sample Collection Description": [
@@ -338,7 +352,7 @@ class UserMetaLoader(object):
         """
         """
         try:
-            with open(args.usermeta) as f:
+            with open(usermeta_token) as f:
                 self.usermeta = json.load(f)
         except json.decoder.JSONDecodeError:
             self.usermeta = None
@@ -351,7 +365,7 @@ class UserMetaLoader(object):
         """
         """
         try:
-            usermeta = json.loads(args.usermeta)
+            usermeta = json.loads(usermeta_token)
         except json.decoder.JSONDecodeError:
             self.usermeta = None
             warnings.warn("JSON usermeta could not be parsed from <stdin>.")

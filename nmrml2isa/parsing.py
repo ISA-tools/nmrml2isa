@@ -165,7 +165,7 @@ def main(argv=None):
     p.add_argument('-i', dest='in_path', help='input folder or archive containing nmrML files', required=True)
     p.add_argument('-o', dest='out_path', help='out folder (a new directory will be created here)', required=True)
     p.add_argument('-s', dest='study_id', help='study identifier (e.g. MTBLSxxx)', required=True)
-    p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', default=None, required=False)#, type=json.loads)
+    p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON or XLSX format)', default=None, required=False)#, type=json.loads)
     p.add_argument('-j', dest='jobs', help='launch different processes for parsing', action='store', required=False, default=1, type=int)
     p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='once', required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
     p.add_argument('-t', dest='template_dir', help='directory containing default template files', action='store', default=None)
