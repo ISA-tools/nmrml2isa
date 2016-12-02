@@ -1,8 +1,11 @@
+from __future__ import absolute_import
+
 import os
 import json
 import collections
 import pronto
-import xml.etree.ElementTree as etree
+
+from .utils import etree
 
 
 
