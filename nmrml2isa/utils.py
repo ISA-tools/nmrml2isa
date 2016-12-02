@@ -89,7 +89,7 @@ def compr_extract(compr_pth):
         zipfile.ZipFile: if the file is a zipped file
     """
 
-    filend = ('.mzml', '.imzml')
+    filend = ('.nmrML')
     if zipfile.is_zipfile(compr_pth):
         comp = zipfile.ZipFile(compr_pth)
         cfiles = [comp.open(f) for f in comp.namelist() if f.lower().endswith(filend)]

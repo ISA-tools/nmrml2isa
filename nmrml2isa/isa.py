@@ -27,7 +27,7 @@ class ISA_Tab(object):
 
         self.isa_env['Platform'] = next((meta['Instrument'] for meta in metalist if 'Instrument' in meta), '')
 
-        self.isa_env['Converter'] = __name__,
+        self.isa_env['Converter'] = __name__
         self.isa_env['Converter version'] = __version__
 
         if not os.path.exists(self.isa_env['out_dir']):
