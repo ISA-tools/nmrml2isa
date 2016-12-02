@@ -1,74 +1,75 @@
 language: python
-
 python:
-  - "3.5"
-  - "2.7"
+- '3.5'
+- '2.7'
+
 env:
-  - EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS
-  - EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS1  META=true
-  - EXAMPLE="IPB_HopExample/nmrMLs"                EXAMPLE_TYPE=NMRML  SLUG=IPBHV1
-  - EXAMPLE="IPB_HopExample/nmrMLs.v2"             EXAMPLE_TYPE=NMRML  SLUG=IPBHV2
-  - EXAMPLE="jcamp-dx_GABA_withoutFID"             EXAMPLE_TYPE=NMRML  SLUG=JCAMPDX
-  - EXAMPLE="quantification_example"               EXAMPLE_TYPE=NMRML  SLUG=QUANTEX
-  - EXAMPLE="reference_spectra_examples/bmrb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR1
-  - EXAMPLE="reference_spectra_examples/hmdb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR2
-  - EXAMPLE="reference_spectra_examples/metabohub" EXAMPLE_TYPE=NMRML  SLUG=SPECR3
+- EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS   DEPLOY=true
+- EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS1  META=true
+- EXAMPLE="IPB_HopExample/nmrMLs"                EXAMPLE_TYPE=NMRML  SLUG=IPBHV1
+- EXAMPLE="IPB_HopExample/nmrMLs.v2"             EXAMPLE_TYPE=NMRML  SLUG=IPBHV2
+- EXAMPLE="jcamp-dx_GABA_withoutFID"             EXAMPLE_TYPE=NMRML  SLUG=JCAMPDX
+- EXAMPLE="quantification_example"               EXAMPLE_TYPE=NMRML  SLUG=QUANTEX
+- EXAMPLE="reference_spectra_examples/bmrb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR1
+- EXAMPLE="reference_spectra_examples/hmdb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR2
+- EXAMPLE="reference_spectra_examples/metabohub" EXAMPLE_TYPE=NMRML  SLUG=SPECR3
 
 matrix:
   allow_failures:
-      # need to fix the starmap stuff
-    - python: "2.7"
-
-      # FAM013_AHTM.PROTON_04.nmrML is not valid XML
-    - env: EXAMPLE="IPB_HopExample/nmrMLs"                EXAMPLE_TYPE=NMRML  SLUG=IPBHV1
-
-      # bmse000325.nmrML is not valid XML
-    - env: EXAMPLE="reference_spectra_examples/bmrb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR1
-
+  - python: '2.7'
+  - env: EXAMPLE="IPB_HopExample/nmrMLs"                EXAMPLE_TYPE=NMRML  SLUG=IPBHV1
+  - env: EXAMPLE="reference_spectra_examples/bmrb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR1
   fast_finish: true
 
 before_install:
-  - sudo apt-get -qq update
-  - sudo apt-get install -y default-jre
-  - if [ $EXAMPLE_TYPE = "MTBLS" ]; then sudo apt-get install -y curlftpfs; fi
+- sudo apt-get -qq update
+- sudo apt-get install -y default-jre
+- if [ $EXAMPLE_TYPE = "MTBLS" ]; then sudo apt-get install -y curlftpfs; fi
 
 install:
-  - pip install -r requirements-py2.txt
-  - pip install .
+- pip install -r requirements-py2.txt
+- pip install .
 
 before_script:
-  - >
-    if [ $EXAMPLE_TYPE = "NMRML" ]; then
-    git clone https://github.com/nmrML/nmrML --depth 1;
-    else mkdir example_files;
-    curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public example_files;
-    fi
-  - wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip
-  - unzip ISA-validator-1.6.5.zip
-  - wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip
-  - unzip ISAcreatorMetaboLights.zip
-  - mkdir out_folder
+- 'if [ $EXAMPLE_TYPE = "NMRML" ]; then git clone https://github.com/nmrML/nmrML --depth
+  1; else mkdir example_files; curlftpfs ftp.ebi.ac.uk/pub/databases/metabolights/studies/public
+  example_files; fi
 
-
+'
+- wget https://github.com/ISA-tools/ISAvalidator-ISAconverter-BIImanager/releases/download/1.6.5/ISA-validator-1.6.5.zip
+- unzip ISA-validator-1.6.5.zip
+- wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/ISAcreatorMetaboLights.zip
+- unzip ISAcreatorMetaboLights.zip
+- mkdir out_folder
 script:
-  - >
-    if [ $META ]; then
-    echo '{"Extraction Method": {"name": "MetaTest"}}' > meta.json;
-    fi
-  - >
-    if [ $EXAMPLE_TYPE = "MTBLS" ]; then
-    nmrml2isa -i example_files/$EXAMPLE -o out_folder -s $SLUG -m meta.json;
-    else nmrml2isa -i nmrML/examples/$EXAMPLE -o out_folder -s $SLUG;
-    fi
-  - >
-    java -cp ISA-validator-1.6.5/isatools_deps.jar
-    org.isatools.isatab.manager.SimpleManager validate out_folder/$SLUG
-    Configurations/MetaboLightsConfig20140506/
-  - >
-    if [ $META ]; then
-    cat out_folder/$SLUG/a_*.txt | grep "MetaTest" -c;
-    fi
+- 'if [ $META ]; then echo ''{"Extraction Method": {"name": "MetaTest"}}'' > meta.json;
+  fi
 
+'
+- 'if [ $EXAMPLE_TYPE = "MTBLS" ]; then nmrml2isa -i example_files/$EXAMPLE -o out_folder
+  -s $SLUG -m meta.json; else nmrml2isa -i nmrML/examples/$EXAMPLE -o out_folder -s
+  $SLUG; fi
+
+'
+- 'java -cp ISA-validator-1.6.5/isatools_deps.jar org.isatools.isatab.manager.SimpleManager
+  validate out_folder/$SLUG Configurations/MetaboLightsConfig20140506/
+
+'
+- 'if [ $META ]; then cat out_folder/$SLUG/a_*.txt | grep "MetaTest" -c; fi
+
+'
 notifications:
   email:
-    - althonosdev@gmail.com
+  - althonosdev@gmail.com
+
+deploy:
+  provider: pypi
+  user: althonos
+  skip_cleanup: true
+  password:
+    secure: 3GwXUI+FtixtOTEodb0GfB/eR/F74hD+gRPeiKgrPEVkDfu4e+n0QqgMdtBeEhpWbjK/hT7UavjqxwUQ8YW+w2Ty6Kb2QP8nbSuBuBFSKbJF/MVZb6MWgBt8HXOq9aH+G5nDnXlC7qKDt1yUFm0VbbPRa/LIwo9ebIcAC7Q5pi96LvmqIWzDxdeOAW+f9w4MiM1qdIF22C7zEXtBC9Rhuf0xQP9eic1YYmE6TlNAmIt3yVorEteZoHdRmbhx40qMnCx7TpWEYk4fx+BoZ7f0mlahDcZLaTIbMYaH15dFFRasOmc5aPSARR62mt9Tkq6qX1Rs/rYZa2qshF9wQJIOHbcHSX4kMR2AL/ZAqNlSGyjVWkOzEtLyh3YfknbfdcMrfF/1ZVMQDdAKL8QZ1u6ub8+CKfZTEsGu2tjZiHigzMFNdhzzr7lqNyb2HKfllVRiPzVb16irWYVXz3cnT241h0PzG1VjGEYPsYZY96/ayrQ/0UsaHkxZ7H2XRnPH0S/RsFMKeYy7wMuiWY7Dvv3bY4H/IbNpQQAgLdj/77jsZXcSOKElh00XcjBQeSsnR9fPUIqZJo35yvI2knTusbYuEJ3mC6Wnpnw0n2V2n+SdZm7+3wElqtANcu44HaBl+0TLVZRmLlecgy9ftL7bBQtgjjJk0mkuxLghV4mL7oopVqY=
+  on:
+    tags: true
+    distributions: sdist bdist_wheel
+    repo: ISA-tools/nmrml2isa
+    condition: $DEPLOY=true
