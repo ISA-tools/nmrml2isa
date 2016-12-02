@@ -1,161 +1,199 @@
 # coding: utf-8
+"""
+Content
+-----------------------------------------------------------------------------
+This module exposes basic API of nmrl2isa, either being called from command
+line interface with arguments parsing via **main** function, or from another
+Python program via the **convert** function which works the same.
+
+About
+-----------------------------------------------------------------------------
+The nmrml2isa parser was created by Martin Larralde (ENS Cachan, FR) in June
+2016 during an internship at the EBI Cambridge.
+
+License
+-----------------------------------------------------------------------------
+GNU General Public License version 3.0 (GPLv3)
+"""
 from __future__ import (
     print_function,
     absolute_import,
     unicode_literals,
 )
 
-import sys
+import io
 import os
+import sys
+import six
 import glob
 import argparse
 import textwrap
 import warnings
 import json
-import zipfile
 import tarfile
-from datetime import datetime
-import pronto
+import zipfile
 import multiprocessing
 import multiprocessing.pool
+import pronto
 import functools
 
 try:
-    import progressbar as pb
-    PB_AVAILABLE = True
+    import progressbar
 except ImportError:
-    PB_AVAILABLE = False
+    progressbar = None
 
-from . import __version__, __author__, __email__
-from .isa import ISA_Tab
-from .nmrml import nmrMLmeta
+from . import (
+    __author__,
+    __version__,
+    __name__,
+    __license__,
+)
+from .isa   import ISA_Tab
+from .nmrml  import nmrMLmeta
+from .usermeta import UserMetaLoader
+from .utils import (
+    compr_extract,
+    star_args,
+    NMR_CV_PATH
+)
 
 
-def parse_task(owl, f, verbose):
-    if verbose:
-        print('[{}] Started  parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), f))
+@star_args
+def _parse_file(filepath, ontology, pbar=None):
+    """Parse a single file using a cache ontology and a metadata extractor
+
+    Arguments:
+        filepath (str): path to the nmrML file to parse
+        ontology (pronto.Ontology): the cached ontology to use (nmr CV)
+        pbar (progressbar.ProgressBar, optional): a progressbar
+            to display progresses onto [default: None]
+
+    Returns:
+        dict: a dictionary containing the extracted metadata
+    """
+    meta = nmrMLmeta(filepath, ontology).meta
+    if pbar is not None:
+        pbar.update(pbar.value + 1)
     else:
-        try:
-            print('\r[{}] Started  parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), os.path.basename(f.name)), end='')
-        except AttributeError:
-            print('\r[{}] Started  parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), os.path.basename(f)), end='')
-    n = nmrMLmeta(f, owl).meta
-    if verbose:
-        print('[{}] Finished parsing : {}'.format(datetime.now().time().strftime('%H:%M:%S'), f))
-    return n
+        print("Finished parsing: {}".format(filepath))
+    return meta
 
-def main():
-    """ Runs **mzml2isa** from the command line"""
-    p = argparse.ArgumentParser(prog='nmrml2isa',
-                            formatter_class=argparse.RawDescriptionHelpFormatter,
-                            description='''Extract meta information from nmrML files and create ISA-tab structure''',
-                            )
-
-    p.add_argument('-i', dest='in_dir', help='in folder containing mzML files', required=True)
-    p.add_argument('-o', dest='out_dir', help='out folder, new directory will be created here', required=True)
-    p.add_argument('-s', dest='study_name', help='study identifier name', required=True)
-    p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', required=False)#, type=json.loads)
-    p.add_argument('-v', dest='verbose', help='print more output', action='store_true', default=False)
-    p.add_argument('-c', dest='process_count', help='number of processes to spawn (default: nbr of cpu * 4)',
-                         action='store', default=None, type=int)
-    p.add_argument('--version', action='version', version='nmrml2isa {}'.format(__version__))
-
-    args = p.parse_args()
-
-
-
-    if not PB_AVAILABLE:
-        setattr(args, 'verbose', True)
-
-    if args.verbose:
-        print("{} in directory: {}".format(os.linesep, args.in_dir))
-        print("out directory: {}".format(os.path.join(args.out_dir, args.study_name)))
-        print("Sample identifier name:{}{}".format(args.study_name, os.linesep))
-
-    try:
-        if not args.usermeta:
-            usermeta = None
-        elif os.path.isfile(args.usermeta):
-            with open(args.usermeta) as f:
-                usermeta = json.load(f)
-        else:
-            usermeta = json.loads(args.usermeta)
-    except json.decoder.JSONDecodeError:
-        warnings.warn("Usermeta could not be parsed.", UserWarning)
-        usermeta = None
-
-
-    full_parse(args.in_dir, args.out_dir, args.study_name,
-               usermeta,args.verbose, args.process_count)
-
-def convert(in_dir, out_dir, study_identifer, usermeta=None, verbose=False, process_count=None):
-    """ Parses every study from *in_dir* and then creates ISA files.
+def convert(in_path, out_path, study_identifier, **kwargs):
+    """ Parses a study from given *in_path* and then creates an ISA file.
 
     A new folder is created in the out directory bearing the name of
     the study identifier.
 
-    :param str in_dir:              path to directory containing studies
-    :param str out_dir:          path to out directory
-    :param str study_identifier: name of the study (directory to create)
+    Arguments:
+        in_path (str): path to the directory or archive containing nmrML files
+        out_path (str): path to the output directory (new directories will be
+            created here)
+        study_identifier (str): study identifier (e.g. MTBLSxxx)
+
+    Keyword Arguments:
+        usermeta (str, optional): the path to a json file, a xlsx file or
+            directly a json formatted string containing user-defined
+            metadata [default: None]
+        jobs (int, optional): the number of jobs to use [default: 1]
+        template_directory (str, optional): the path to a directory
+            containing custom templates to use when importing ISA tab
+            [default: None] [not yet implemented]
+        verbose (bool): display more output [default: True]
     """
+    verbose = kwargs.get('verbose', True)
+    jobs = kwargs.get('jobs', 1)
+    #template_directory = kwargs.get('template_directory', None)
 
-    print(''.join(['\r'*(not verbose),
-            '[{}] Starting nmrml2isa'.format(datetime.now().time().strftime('%H:%M:%S')),
-            30*' ']), end='\n'*(verbose)
-        )
+    # load the nmr controlled vocabulary
+    NMR_CV = pronto.Ontology(NMR_CV_PATH, False)
 
+    # open user metadata file if any
+    meta_loader = UserMetaLoader(kwargs.get('usermeta', None))
 
-    if os.path.isfile(in_dir) and tarfile.is_tarfile(in_dir):
-        nmrml_files = compr_extract(in_dir, "tar")
-        nmrml_files.sort(key=lambda x: x.name)
-    elif os.path.isfile(in_dir) and zipfile.is_zipfile(in_dir):
-        nmrml_files = compr_extract(in_dir, "zip")
-        nmrml_files.sort(key=lambda x: x.name)
+    # get nmrML file in given folder (case unsensitive)
+    if os.path.isdir(in_path):
+        compr = False
+        nmrml_files = glob.glob(os.path.join(in_path, "*.[n|N][m|M][r|R][m|M][l|L]"))
+    elif tarfile.is_tarfile(in_path) or zipfile.is_zipfile(in_path):
+        compr = True
+        nmrml_files = compr_extract(in_path)
     else:
-        nmrml_path = os.path.join(in_dir, "*.[n|N][m|M][r|R][m|M][l|L]")
-        nmrml_files = glob.glob(nmrml_path)
-        nmrml_files.sort()
+        raise SystemError("Couldn't recognise format of "
+                          "{} as a source of nmrML files".format(in_dir))
 
-    print(''.join(['\r'*(not verbose),
-            '[{}] Creating multiproccessing Pool'.format(datetime.now().time().strftime('%H:%M:%S')),
-            30*' ']), end='\n'*(verbose)
-        )
-
-    metalist = []
     if nmrml_files:
+        if not verbose and progressbar is not None:
+            pbar = progressbar.ProgressBar(
+                min_value = 0, max_value = len(nmrml_files),
+                widgets=['Parsing {:8}: '.format(study_identifier),
+                           progressbar.SimpleProgress(),
+                           progressbar.Bar(marker=["#","█"][six.PY3], left=" |", right="| "),
+                           progressbar.ETA()]
+                )
+            pbar.start()
+        else:
+            pbar = None
 
-        print(''.join(['\r'*(not verbose),
-            '[{}] Loading ontology'.format(datetime.now().time().strftime('%H:%M:%S')),
-            30*' ']), end='\n'*(verbose)
-        )
-        #try:
-        #    owl = pronto.Ontology("http://nmrml.org/cv/v1.0.rc1/nmrCV.owl")
-        #except:
-        owl = pronto.Ontology(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nmrCV.owl'), False)
+        if jobs > 1:
+            pool = multiprocessing.pool.ThreadPool(jobs)
+            metalist = pool.map(_parse_file, [(nmrml_file, NMR_CV, pbar) for nmrml_file in sorted(nmrml_files)])
+        else:
+            metalist = [_parse_file([nmrml_file, NMR_CV, pbar]) for nmrml_file in sorted(nmrml_files)]
 
-
-        # get meta information for all files
-        #task = partial(parse_task, owl)
-        metalist = [parse_task(owl, x, verbose) for x in nmrml_files]#pool.starmap(parse_task, ((owl, x, verbose) for x in nmrml_files))
-
-        # update isa-tab file
         if metalist:
-            print(''.join(['\r'*(not verbose),
-            '[{}] Writing ISA-Tab files'.format(datetime.now().time().strftime('%H:%M:%S')),
-            ' '*30]), end='\n'*verbose)
-            isa_tab_create = ISA_Tab(out_dir, study_identifer, usermeta).write(metalist)
-
-            print(''.join(['\r'*(not verbose),
-            '[{}] Finished writing ISA-Tab files'.format(datetime.now().time().strftime('%H:%M:%S'), out_dir),
-            ' '*30]), end='\n')
-
+            if verbose:
+                print("Dumping nmrML meta information into ISA-Tab structure")
+            isa_tab = ISA_Tab(out_path, study_identifier, usermeta=meta_loader.usermeta)#, template_directory=template_directory)
+            isa_tab.write(metalist)
 
     else:
-        warnings.warn("No files were found in directory.", UserWarning)
-        #print("No files were found.")
+        warnings.warn("No files were found in {}.".format(in_path), UserWarning)
+
+def main(argv=None):
+    """Run **nmrml2isa** from the command line
+
+    Arguments
+        argv (list, optional): the list of arguments to run nmrml2isa
+            with (if None, then sys.argv is used) [default: None]
+    """
+    p = argparse.ArgumentParser(prog=__name__,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        description='''Extract meta information from nmrML files and create ISA-tab structure''',
+        usage='nmrml2isa -i IN_PATH -o OUT_PATH -s STUDY_ID [options]',
+    )
+
+    p.add_argument('-i', dest='in_path', help='input folder or archive containing nmrML files', required=True)
+    p.add_argument('-o', dest='out_path', help='out folder (a new directory will be created here)', required=True)
+    p.add_argument('-s', dest='study_id', help='study identifier (e.g. MTBLSxxx)', required=True)
+    p.add_argument('-m', dest='usermeta', help='additional user provided metadata (JSON format)', default=None, required=False)#, type=json.loads)
+    p.add_argument('-j', dest='jobs', help='launch different processes for parsing', action='store', required=False, default=1, type=int)
+    p.add_argument('-W', dest='wrng_ctrl', help='warning control (with python default behaviour)', action='store', default='once', required=False, choices=['ignore', 'always', 'error', 'default', 'module', 'once'])
+    #p.add_argument('-t', dest='template_dir', help='directory containing default template files', action='store', default=None)
+    p.add_argument('--version', action='version', version='nmrml2isa {}'.format(__version__))
+    p.add_argument('-v', dest='verbose', help="show more output (default if progressbar2 is not installed)", action='store_true', default=False)
+
+    args = p.parse_args(argv or sys.argv[1:])
+
+
+    if not progressbar:
+        setattr(args, 'verbose', True)
+
+    if args.verbose:
+        print("{} input path: {}".format(os.linesep, args.in_path))
+        print("output path: {}".format(os.path.join(args.out_path, args.study_id)))
+        print("Sample identifier:{}{}".format(args.study_id, os.linesep))
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings(args.wrng_ctrl)
+        convert(args.in_path, args.out_path, args.study_id,
+           usermeta=args.usermeta, verbose=args.verbose,
+           jobs=args.jobs, #template_directory=args.template_dir
+        )
+
 
 
 #### DEPRECATED
+
 @functools.wraps(main)
 def run(*args, **kwargs):
     warnings.warn("nmrml2isa.parsing.run is deprecated, use "
@@ -171,3 +209,5 @@ def full_parse(*args, **kwargs):
 
 if __name__ == '__main__':
     main()
+
+

@@ -7,10 +7,14 @@ from __future__ import (
 
 import six
 import string
+import os
+import functools
 import tarfile
 import collections
 
 from . import __version__, __author__, __email__
+
+NMR_CV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nmrCV.owl')
 
 # GET BEST AVAILABLE XML PARSER
 try:
@@ -113,3 +117,16 @@ def compr_extract(compr_pth):
         cf.filelist = filelist
 
     return cfiles
+
+
+def star_args(func):
+    """Unpack arguments if they come packed
+    """
+    @functools.wraps(func)
+    def new_func(*args):
+        if len(args)==1:
+            return func(*args[0])
+        else:
+            return func(*args)
+    return new_func
+
