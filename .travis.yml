@@ -35,7 +35,7 @@ install:
 - pip install .
 
 before_script:
-- if [ ! -d $HOME/MetaboLightsConfig ]; then wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/configurations/MetaboLightsConfig20140506/*.xml -P $HOME/MetaboLightsConfig/; fi
+- if [ ! "$(ls $HOME/MetaboLightsConfig)" ]; then wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/configurations/MetaboLightsConfig20140506/*.xml -P $HOME/MetaboLightsConfig/; fi
 - if [ $EXAMPLE_TYPE == NMRML ] && [ ! -d $HOME/nmrML/examples ]; then git clone https://github.com/nmrML/nmrML $HOME/nmrML; fi
 - if [ $EXAMPLE_TYPE == MTBLS ] && [ ! -d $HOME/MetaboLightsStudies/$EXAMPLE ]; then wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/$EXAMPLE/* -P $HOME/MetaboLightsStudies/$EXAMPLE; fi
 - 'if [ $META ]; then echo ''{"Extraction Method": {"name": "MetaTest"}}'' > meta.json; fi'
