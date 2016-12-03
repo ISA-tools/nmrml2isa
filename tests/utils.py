@@ -81,7 +81,7 @@ class CachedFilesDownloader(object):
         # already in cache directory (for Travis-CI only)
         self.vprint("\ndownloading MetaboLights configuration files to {} ...".format(dl_directory), end="")
         if IN_CI:
-            if glob.glob(os.path.join(dl_directory), "*.xml"): # skip if configs are in cache
+            if glob.glob(os.path.join(dl_directory, "*.xml")): # skip if configs are in cache
                 self.vprint("skip")
                 return dl_directory
 
