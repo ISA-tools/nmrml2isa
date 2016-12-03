@@ -59,7 +59,7 @@ from .utils import (
 
 
 @star_args
-def _parse_file(filepath, ontology, pbar=None):
+def _parse_file(filepath, ontology, pbar=None, verbose=False):
     """Parse a single file using a cache ontology and a metadata extractor
 
     Arguments:
@@ -74,7 +74,7 @@ def _parse_file(filepath, ontology, pbar=None):
     meta = nmrMLmeta(filepath, ontology).meta
     if pbar is not None:
         pbar.update(pbar.value + 1)
-    else:
+    elif verbose:
         print("Finished parsing: {}".format(filepath))
     return meta
 
@@ -138,7 +138,7 @@ def convert(in_path, out_path, study_identifier, **kwargs):
             pool = multiprocessing.pool.ThreadPool(jobs)
             metalist = pool.map(_parse_file, [(nmrml_file, NMR_CV, pbar) for nmrml_file in sorted(nmrml_files)])
         else:
-            metalist = [_parse_file([nmrml_file, NMR_CV, pbar]) for nmrml_file in sorted(nmrml_files)]
+            metalist = [_parse_file([nmrml_file, NMR_CV, pbar, verbose]) for nmrml_file in sorted(nmrml_files)]
 
         if metalist:
             if verbose:
@@ -147,7 +147,7 @@ def convert(in_path, out_path, study_identifier, **kwargs):
             isa_tab.write(metalist)
 
     else:
-        warnings.warn("No files were found in {}.".format(in_path), UserWarning)
+        warnings.warn("No files were found in {}.".format(in_path))
 
 def main(argv=None):
     """Run **nmrml2isa** from the command line

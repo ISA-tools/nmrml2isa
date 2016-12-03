@@ -365,7 +365,7 @@ class UserMetaLoader(object):
         """
         """
         try:
-            usermeta = json.loads(usermeta_token)
+            self.usermeta = json.loads(usermeta_token)
         except json.decoder.JSONDecodeError:
             self.usermeta = None
             warnings.warn("JSON usermeta could not be parsed from <stdin>.")
