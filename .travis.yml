@@ -2,6 +2,7 @@ sudo: false
 language: python
 python:
 - '3.5'
+- '3.4'
 - '2.7'
 
 cache:
@@ -11,40 +12,13 @@ cache:
   - $HOME/MetaboLightsConfig
   - $HOME/MetaboLightsStudies
 
-env:
-- EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS1   DEPLOY=true
-- EXAMPLE="MTBLS1"                               EXAMPLE_TYPE=MTBLS  SLUG=MTBLS1   META=true
-- EXAMPLE="IPB_HopExample/nmrMLs"                EXAMPLE_TYPE=NMRML  SLUG=IPBHV1
-- EXAMPLE="IPB_HopExample/nmrMLs.v2"             EXAMPLE_TYPE=NMRML  SLUG=IPBHV2
-- EXAMPLE="jcamp-dx_GABA_withoutFID"             EXAMPLE_TYPE=NMRML  SLUG=JCAMPDX
-- EXAMPLE="quantification_example"               EXAMPLE_TYPE=NMRML  SLUG=QUANTEX
-- EXAMPLE="reference_spectra_examples/bmrb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR1
-- EXAMPLE="reference_spectra_examples/hmdb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR2
-- EXAMPLE="reference_spectra_examples/metabohub" EXAMPLE_TYPE=NMRML  SLUG=SPECR3
-
-matrix:
-  allow_failures:
-  - python: '2.7'
-  - env: EXAMPLE="IPB_HopExample/nmrMLs"                EXAMPLE_TYPE=NMRML  SLUG=IPBHV1
-  - env: EXAMPLE="reference_spectra_examples/bmrb"      EXAMPLE_TYPE=NMRML  SLUG=SPECR1
-  fast_finish: true
-
 install:
 - pip install https://github.com/ISA-tools/isa-api/archive/py2.zip
 - pip install -r requirements.txt
 - pip install .
 
-before_script:
-- if [ ! "$(ls $HOME/MetaboLightsConfig)" ]; then wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/submissionTool/configurations/MetaboLightsConfig20140506/*.xml -P $HOME/MetaboLightsConfig/; fi
-- if [ $EXAMPLE_TYPE == NMRML ] && [ ! -d $HOME/nmrML/examples ]; then git clone https://github.com/nmrML/nmrML $HOME/nmrML; fi
-- if [ $EXAMPLE_TYPE == MTBLS ] && [ ! -d $HOME/MetaboLightsStudies/$EXAMPLE ]; then wget ftp://ftp.ebi.ac.uk/pub/databases/metabolights/studies/public/$EXAMPLE/* -P $HOME/MetaboLightsStudies/$EXAMPLE; fi
-- 'if [ $META ]; then echo ''{"Extraction Method": {"name": "MetaTest"}}'' > meta.json; fi'
-
-
 script:
-- if [ $EXAMPLE_TYPE == MTBLS ]; then nmrml2isa -i $HOME/MetaboLightsStudies/$EXAMPLE -o out_folder -s $SLUG -m meta.json; else nmrml2isa -i $HOME/nmrML/examples/$EXAMPLE -o out_folder -s $SLUG; fi
-- if [ $META ]; then cat out_folder/$SLUG/a_*.txt | grep "MetaTest" -c; fi
-- python scripts/validate.py out_folder/$SLUG $HOME/MetaboLightsConfig
+- python -m unittest discover -v
 
 notifications:
   email:
@@ -61,4 +35,3 @@ deploy:
     python: '3.5'
     tags: true
     repo: ISA-tools/nmrml2isa
-    condition: $DEPLOY=true
