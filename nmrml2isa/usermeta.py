@@ -9,13 +9,13 @@ import json
 import openpyxl
 import six
 import os
+import sys
 import collections
 import warnings
 
 from . import (
     __author__,
     __license__,
-    __name__,
     __version__,
 )
 
@@ -449,4 +449,11 @@ class UserMetaLoader(object):
 
 
 if __name__=="__main__":
-    UserMetaLoader.dump_template_xlsx(os.getcwd())
+
+    if sys.argv[1:]:
+        output_directory = " ".join(sys.argv[1:])
+    else:
+        output_directory = os.getcwd()
+
+    print("Dumping usermeta template xlsx to: {}".format(output_directory))
+    UserMetaLoader.dump_template_xlsx(output_directory)
