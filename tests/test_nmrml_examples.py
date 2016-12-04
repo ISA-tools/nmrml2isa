@@ -57,7 +57,7 @@ class TestNmrmlExamples(unittest.TestCase):
 
         def _test_study_with_inline_metadata(self):
             usermeta = '{"study": {"title": "Awesome Study"}}'
-            self.files_dir = utils.download_mtbls_study(study_id)
+            self.files_dir = os.path.join(self.repo_dir, "examples", path)
             nmrml2isa.parsing.convert(self.files_dir, self.out_dir, study_id, usermeta=usermeta)
             self.assertIsaWasExported(study_id)
             self.assertIsaIsValid(study_id)

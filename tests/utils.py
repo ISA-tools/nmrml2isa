@@ -3,6 +3,7 @@ from __future__ import (
     print_function,
 )
 
+import six
 import os
 import sys
 import glob
@@ -29,13 +30,14 @@ class CachedFilesDownloader(object):
             print(*args, **kwargs)
 
     @staticmethod
-    def _download_ftp_file(args):
+    def _download_mtbls_file(args):
         file, directory = args
-
-        with contextlib.closing(ftplib.FTP("ftp.ebi.ac.uk")) as ebi_ftp:
-            ebi_ftp.login()
+        with contextlib.closing(six.moves.http_client.HTTPConnection("ftp.ebi.ac.uk")) as ebi_http:
+            ebi_http.connect()
+            ebi_http.request("GET", file)
+            response = ebi_http.getresponse()
             with open(os.path.join(directory, os.path.basename(file)), 'wb') as dest_file:
-                ebi_ftp.retrbinary("RETR {}".format(file), dest_file.write)
+                dest_file.write(response.read())
 
     def __init__(self):
         if IN_CI:
@@ -68,7 +70,7 @@ class CachedFilesDownloader(object):
         self.vprint("ok")
 
         pool = multiprocessing.pool.Pool(multiprocessing.cpu_count()*8)
-        pool.map(self._download_ftp_file, [(f, dl_directory) for f in files_list])
+        pool.map(self._download_mtbls_file, [(f, dl_directory) for f in files_list])
 
         return dl_directory
 
