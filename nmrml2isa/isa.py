@@ -6,6 +6,7 @@ from __future__ import (
 )
 
 import string
+import six
 import os
 import csv
 
@@ -85,7 +86,7 @@ class ISA_Tab(object):
 
         with open(new_a_path, 'w') as a_out:
 
-            writer=csv.writer(a_out, quotechar='"', quoting=csv.QUOTE_ALL, delimiter='\t')
+            writer=csv.writer(a_out, quotechar='"', quoting=csv.QUOTE_ALL, delimiter=str('\t'))
             writer.writerow(headers)
 
             for meta in metalist:
