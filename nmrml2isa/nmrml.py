@@ -224,7 +224,8 @@ class nmrMLmeta(object):
             name = contact.attrib['fullname'].split(' ', 3)
             if len(name)==1: first_name, [last_name], mid = '', name, ''
             elif len(name)==2: [first_name, last_name], mid = name, ''
-            else: first_name, mid, last_name = name
+            elif len(name)==3: first_name, mid, last_name = name
+            else: first_name, mid, last_name = contact.attrib['fullname'], '', ''
 
             self.meta['contacts']['entry_list'].append( {
                 'first_name': first_name,
