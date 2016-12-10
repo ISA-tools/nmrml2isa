@@ -21,6 +21,7 @@ TESTDIR = os.path.dirname(os.path.abspath(__file__))
 MAINDIR = os.path.dirname(TESTDIR)
 
 IN_CI = os.environ.get('CI', '').lower() == "true"
+VERBOSE = '-v' in sys.argv or '--verbose' in sys.argv
 
 
 if IN_CI:
@@ -33,7 +34,7 @@ else:
     examples_directory = tempfile.mkdtemp()
 
 def vprint(*args, **kwargs):
-    if '-v' in sys.argv or '--verbose' in sys.argv:
+    if VERBOSE:
         print(*args, **kwargs)
 
 def _download_mtbls_file(args):
@@ -52,23 +53,18 @@ def download_mtbls_study(study_id, dl_directory=None):
 
     # do not download mtbls files again if found
     # already in cache directory (for Travis-CI only)
-    #cls.vprint("\ndownloading {} files to {} ... ".format(study_id, dl_directory), end="")
-    vprint("\ndownloading {} files to {} ... ".format(study_id, dl_directory), end="")
     if glob.glob(os.path.join(studies_directory, study_id, "*.[n|N][m|M][r|R][m|M][l|L]")):
-        #cls.vprint("skip")
-        vprint("skip")
         return dl_directory
 
+    vprint("downloading {} files to {} ...".format(study_id, dl_directory), end=" ")
     if not os.path.exists(dl_directory):
         os.mkdir(dl_directory)
     with contextlib.closing(ftplib.FTP("ftp.ebi.ac.uk")) as ebi_ftp:
         ebi_ftp.login()
         ebi_ftp.cwd(STUDY_DIR)
         files_list = [os.path.join(STUDY_DIR, study_file) for study_file in ebi_ftp.nlst() if study_file != "audit"]
-    #cls.vprint("ok")
 
     pool = multiprocessing.pool.Pool(multiprocessing.cpu_count()*8)
-    #pool.map(cls._download_mtbls_file, [(f, dl_directory) for f in files_list])
     pool.map(_download_mtbls_file, [(f, dl_directory) for f in files_list])
     vprint("ok")
 
@@ -81,14 +77,11 @@ def download_configuration_files(dl_directory=None):
 
     # do not download config files again if found
     # already in cache directory (for Travis-CI only)
-    #cls.vprint("\ndownloading MetaboLights configuration files to {} ...".format(dl_directory), end="")
-    vprint("\ndownloading MetaboLights configuration files to {} ...".format(dl_directory), end="")
     if IN_CI:
         if glob.glob(os.path.join(dl_directory, "*.xml")): # skip if configs are in cache
-            #cls.vprint("skip")
-            vprint("skip")
             return dl_directory
 
+    vprint("downloading MetaboLights configuration files to {} ...".format(dl_directory), end=" ")
     with contextlib.closing(ftplib.FTP("ftp.ebi.ac.uk")) as ebi_ftp:
         ebi_ftp.login()
         ebi_ftp.cwd(CONFIG_DIR)
@@ -98,7 +91,6 @@ def download_configuration_files(dl_directory=None):
             if not os.path.isfile(os.path.join(dl_directory, config_file)):
                 with open(os.path.join(dl_directory, config_file), 'wb') as dest_file:
                     ebi_ftp.retrbinary("RETR {}".format(config_file), dest_file.write)
-    #cls.vprint("ok")
     vprint("ok")
 
     return dl_directory
@@ -108,15 +100,14 @@ def download_nmrml_repository(dl_directory=None):
     NMRML_URL = "https://github.com/nmrML/nmrML"
     dl_directory = dl_directory or examples_directory
 
-    vprint("\ndownloading nmrML/nmrML repository to {} ...".format(dl_directory))
     if IN_CI:
         if os.path.isdir(os.path.join(dl_directory, 'examples')):
-            vprint("skip")
             return dl_directory
 
-    verbose = "-v" in sys.argv or "--verbose" in sys.argv
-    subprocess.call(["git", "clone", NMRML_URL, dl_directory, "--depth", "1"] +  (['-q'] if not verbose else []))
-
+    vprint("downloading nmrML/nmrML repository to {} ...".format(dl_directory), end=" ")
+    retcode = subprocess.call(["git", "clone", NMRML_URL, dl_directory, "--depth", "1"] +  (['-q'] if not VERBOSE else []))
+    if not retcode:
+        vprint("ok")
     return dl_directory
 
 def cleanUp():
