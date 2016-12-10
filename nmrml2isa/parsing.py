@@ -99,10 +99,13 @@ def convert(in_path, out_path, study_identifier, **kwargs):
             containing custom templates to use when importing ISA tab
             [default: None]
         verbose (bool): display more output [default: True]
+        quiet (bool): do not display any output [default: False]
     """
-    verbose = kwargs.get('verbose', True)
+    quiet = kwargs.get('quiet', False)
+    verbose = kwargs.get('verbose', not quiet)
     jobs = kwargs.get('jobs', 1)
     template_directory = kwargs.get('template_directory', None)
+
 
     # load the nmr controlled vocabulary
     NMR_CV = pronto.Ontology(NMR_CV_PATH, False)
@@ -122,7 +125,7 @@ def convert(in_path, out_path, study_identifier, **kwargs):
                           "{} as a source of nmrML files".format(in_dir))
 
     if nmrml_files:
-        if not verbose and progressbar is not None:
+        if not (verbose or quiet) and progressbar is not None:
             pbar = progressbar.ProgressBar(
                 min_value = 0, max_value = len(nmrml_files),
                 widgets=['Parsing {:8}: '.format(study_identifier),
@@ -171,6 +174,8 @@ def main(argv=None):
     p.add_argument('-t', dest='template_dir', help='directory containing default template files', action='store', default=None)
     p.add_argument('--version', action='version', version='nmrml2isa {}'.format(__version__))
     p.add_argument('-v', dest='verbose', help="show more output (default if progressbar2 is not installed)", action='store_true', default=False)
+    p.add_argument('-q', dest='quiet', help="do not show any output", action='store_true', default=False)
+
 
     args = p.parse_args(argv or sys.argv[1:])
 
@@ -187,7 +192,8 @@ def main(argv=None):
         warnings.filterwarnings(args.wrng_ctrl)
         convert(args.in_path, args.out_path, args.study_id,
            usermeta=args.usermeta, verbose=args.verbose,
-           jobs=args.jobs, template_directory=args.template_dir
+           jobs=args.jobs, template_directory=args.template_dir,
+           quiet=args.quiet,
         )
 
 
