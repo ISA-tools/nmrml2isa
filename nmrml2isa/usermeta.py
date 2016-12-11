@@ -19,8 +19,10 @@ from . import (
     __version__,
 )
 
-
-
+try:
+   from json import JSONDecodeError
+except ImportError:
+   JSONDecodeError = ValueError
 
 
 
@@ -354,7 +356,7 @@ class UserMetaLoader(object):
         try:
             with open(usermeta_token) as f:
                 self.usermeta = json.load(f)
-        except json.decoder.JSONDecodeError:
+        except JSONDecodeError:
             self.usermeta = None
             warnings.warn("JSON usermeta could not be parsed from {}.".format(usermeta_token))
         except OSError:
@@ -366,7 +368,7 @@ class UserMetaLoader(object):
         """
         try:
             self.usermeta = json.loads(usermeta_token)
-        except json.decoder.JSONDecodeError:
+        except JSONDecodeError:
             self.usermeta = None
             warnings.warn("JSON usermeta could not be parsed from <stdin>.")
 
