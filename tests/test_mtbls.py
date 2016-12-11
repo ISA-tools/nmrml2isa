@@ -72,8 +72,32 @@ class TestMtblsStudy(AbstractTestIsa):
             with open(os.path.join(self.out_dir, study_id, 'i_Investigation.txt')) as i_file:
                 self.assertIn('Awesome Study', i_file.read())
 
+        def _test_study_with_xlsx_metadata(self):
+            usermeta = os.path.join(utils.TESTDIR, "data", "usermeta.xlsx")
+            self.files_dir = utils.download_mtbls_study(study_id)
+            nmrml2isa.parsing.convert(self.files_dir, self.out_dir, study_id,
+                                      usermeta=usermeta, quiet=True)
+            self.assertIsaWasExported(study_id)
+            self.assertIsaIsValid(study_id)
+            with open(os.path.join(self.out_dir, study_id, 'i_Investigation.txt')) as i_file:
+                self.assertIn("The best extraction you've ever seen", i_file.read())
+
+        def _test_study_with_json_metadata(self):
+            usermeta = os.path.join(utils.TESTDIR, "data", "usermeta.json")
+            self.files_dir = utils.download_mtbls_study(study_id)
+            nmrml2isa.parsing.convert(self.files_dir, self.out_dir, study_id,
+                                      usermeta=usermeta, quiet=True)
+            self.assertIsaWasExported(study_id)
+            self.assertIsaIsValid(study_id)
+            with open(os.path.join(self.out_dir, study_id, 'i_Investigation.txt')) as i_file:
+                self.assertIn('Martin Larralde, Tom Lawson, Reza Salek', i_file.read())
+
         setattr(cls, "test_{}_without_metadata".format(study_id).lower(), _test_study_without_metadata)
         setattr(cls, "test_{}_with_inline_metadata".format(study_id).lower(), _test_study_with_inline_metadata)
+        setattr(cls, "test_{}_with_xlsx_metadata".format(study_id).lower(), _test_study_with_xlsx_metadata)
+        setattr(cls, "test_{}_with_json_metadata".format(study_id).lower(), _test_study_with_json_metadata)
+
+
 
 
 def load_tests(loader, tests, pattern):
