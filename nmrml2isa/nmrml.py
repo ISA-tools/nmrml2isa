@@ -7,6 +7,7 @@ from __future__ import (
 
 import os
 import json
+import six
 import collections
 import pronto
 
@@ -17,7 +18,7 @@ from .utils import etree
 
 class nmrMLmeta(object):
 
-    xpaths = {
+    _namespaced_xpaths = {
         'instruments':    '{root}/s:instrumentConfigurationList/s:instrumentConfiguration',
         'software':       '{root}/s:softwareList/s:software',
         'acquisition':    '{root}/s:acquisition/s:acquisition1D/s:acquisitionParameterSet',
@@ -28,6 +29,8 @@ class nmrMLmeta(object):
         'probehead':      '{root}/s:instrumentConfigurationList/s:instrumentConfiguration/s:userParam',
         'pulse_sequence': '{root}/s:acquisition/s:acquisition1D/s:acquisitionParameterSet/s:pulseSequence/s:userParam',
     }
+
+    _raw_xpaths = {k:v.replace('s:', '') for k,v in six.iteritems(_namespaced_xpaths)}
 
     gyromagnetic_table = {
         'CHEBI_49637': 42.576, # 1H
@@ -414,11 +417,19 @@ class nmrMLmeta(object):
         try:
             # proper method to get namespace through nsmap (lxml)
             self.ns = self.tree.getroot().nsmap
-            self.ns['s'] = self.ns[None]
-            del self.ns[None]
+            self.ns['s'] = self.ns.get(None, '')
+            self.ns.pop(None, None)
         except AttributeError:
             # 'hacked' method to get namespace through root tag (xml.etree)
-            self.ns = {'s': self.tree.getroot().tag[1:].split('}')[0] }
+            if self.tree.getroot().tag.startswith('{'):
+                self.ns = {'s': self.tree.getroot().tag[1:].split('}')[0] }
+            else:
+                self.ns = {'s': ''}
+
+        if self.ns['s'] == '':
+            self.xpaths = self._raw_xpaths
+        else:
+            self.xpaths = self._namespaced_xpaths
 
         self.env = {}
 

@@ -25,12 +25,12 @@ class TestNmrmlExamples(AbstractTestIsa):
 
     examples = {#"IPB_HopExample/nmrMLs": "IPBHV1", #issues with attributes
                 "IPB_HopExample/nmrMLs.v2": 'IPBHV2',
-                "jcamp-dx_GABA_withoutFID": "JCAMPDX",
                 "quantification_example": "QUANTEX",
-                "MTBLS1/nmrMLs": "MTBLS1bis",
+                "MTBLS1/nmrMLs": "MTBLS1-dev",
                 "reference_spectra_examples/bmrb": "SPECR1",
                 "reference_spectra_examples/hmdb": "SPECR2",
-                "reference_spectra_examples/metabohub": "SPECR3"}
+                "reference_spectra_examples/metabohub": "SPECR3",
+                "reference_spectra_examples/MMBBI": "SPECR4",}
 
     @classmethod
     def setUpClass(cls):
