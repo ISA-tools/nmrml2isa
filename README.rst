@@ -100,3 +100,5 @@ Or within a python program with the **nmrml** submodule:
 .. |RTD doc| image:: https://img.shields.io/badge/documentation-RTD-71B360.svg?style=flat&maxAge=2592000
    :target: http://2isa.readthedocs.io/en/latest/nmrml2isa/index.html
 
+.. |DOI| image:: https://zenodo.org/badge/74688415.svg
+   :target: https://zenodo.org/badge/latestdoi/74688415
