@@ -2,6 +2,7 @@ nmrml2isa
 =========
 |Version| |Py versions| |Git| |Build Status| |License| |RTD doc| |DOI|
 
+|NMRML|
 
 Overview
 --------
@@ -102,3 +103,6 @@ Or within a python program with the **nmrml** submodule:
 
 .. |DOI| image:: https://zenodo.org/badge/74688415.svg
    :target: https://zenodo.org/badge/latestdoi/74688415
+   
+.. |NMRML| image:: http://nmrml.org/images/header-mark.jpg
+   :target: http://nmrml.org/
