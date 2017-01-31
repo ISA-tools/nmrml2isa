@@ -11,7 +11,7 @@ import os
 import csv
 
 from . import __version__, __author__, __email__, __name__
-from .utils import ChainMap, PermissiveFormatter
+from .utils import ChainMap, PermissiveFormatter, open_csv
 
 class ISA_Tab(object):
 
@@ -84,9 +84,11 @@ class ISA_Tab(object):
 
         fmt = PermissiveFormatter()
 
-        with open(new_a_path, 'w') as a_out:
+        # extra line being added in windows files need to use custom 'open_csv' function from utils
+        with open_csv(new_a_path, 'w') as a_out:
 
             writer=csv.writer(a_out, quotechar=str('"'), quoting=csv.QUOTE_ALL, delimiter=str('\t'))
+
             writer.writerow(headers)
 
             for meta in metalist:
