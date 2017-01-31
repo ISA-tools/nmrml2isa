@@ -130,3 +130,14 @@ def star_args(func):
             return func(*args)
     return new_func
 
+def open_csv(filename, mode='r'):
+    import sys
+    """Open a csv file in proper mode depending on Python verion.
+    Taken from http://stackoverflow.com/questions/38808284/portable-way-to-write-csv-file-in-python-2-or-python-3
+
+    NOTE:
+    The issue is fixed for 2.7.12 and 3.5.2
+    However, this still might be the best solution as it allows for backward computability issues.
+    """
+    return(open(filename, mode=mode+'b') if sys.version_info[0] == 2 else
+           open(filename, mode=mode, newline=''))
