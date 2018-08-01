@@ -13,7 +13,6 @@ import ftplib
 import unittest
 import contextlib
 import warnings
-import isatools.isatab
 
 from . import utils
 from .abstract_test_isa import AbstractTestIsa

@@ -12,8 +12,11 @@ cache:
   - $HOME/MetaboLightsConfig
   - $HOME/MetaboLightsStudies
 
+before_install:
+- pip install -U pip setuptools wheel
+- pip install -r tests/requirements.txt
+
 install:
-- pip install https://github.com/ISA-tools/isa-api/archive/py2.zip
 - pip install -r requirements.txt
 - pip install .
 
