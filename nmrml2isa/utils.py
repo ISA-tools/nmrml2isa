@@ -12,6 +12,11 @@ import functools
 import tarfile
 import collections
 
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
+
 from . import __version__, __author__, __email__
 
 NMR_CV_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'nmrCV.owl')
@@ -65,7 +70,7 @@ class _TarFile(tarfile.TarFile):
             return self.name
         return getattr(self.BufferedReader, attr)
 
-class ChainMap(collections.Mapping):
+class ChainMap(Mapping):
     """A quick backport of collections.ChainMap
     """
 
