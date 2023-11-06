@@ -60,7 +60,7 @@ def download_mtbls_study(study_id, dl_directory=None):
     with contextlib.closing(ftplib.FTP("ftp.ebi.ac.uk")) as ebi_ftp:
         ebi_ftp.login()
         ebi_ftp.cwd(STUDY_DIR)
-        files_list = [os.path.join(STUDY_DIR, study_file) for study_file in ebi_ftp.nlst() if study_file != "audit"]
+        files_list = [os.path.join(STUDY_DIR, study_file) for study_file in ebi_ftp.nlst() if study_file.endswith(".nmrML")]
 
     pool = multiprocessing.pool.Pool(multiprocessing.cpu_count()*8)
     pool.map(_download_mtbls_file, [(f, dl_directory) for f in files_list])
