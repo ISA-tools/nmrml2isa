@@ -36,13 +36,16 @@ class TestMtblsStudy(AbstractTestIsa):
     def get_concerned_studies(cls):
         study_exts = six.BytesIO()
 
-        with contextlib.closing(ftplib.FTP("ftp.ebi.ac.uk")) as ebi_ftp:
-            ebi_ftp.login()
-            ebi_ftp.cwd("/pub/databases/metabolights/study_file_extensions")
-            ebi_ftp.retrbinary("RETR ml_file_extension.json", study_exts.write)
-
-        stats = json.loads(study_exts.getvalue().decode('utf-8'))
-        return [s['id'] for s in stats if '.nmrML' in s['extensions']]
+        try:
+            with contextlib.closing(ftplib.FTP("ftp.ebi.ac.uk")) as ebi_ftp:
+                ebi_ftp.login()
+                ebi_ftp.cwd("/pub/databases/metabolights/study_file_extensions")
+                ebi_ftp.retrbinary("RETR ml_file_extension.json", study_exts.write)
+        except:
+            return []
+        else:
+            stats = json.loads(study_exts.getvalue().decode('utf-8'))
+            return [s['id'] for s in stats if '.nmrML' in s['extensions']]
 
     @classmethod
     def register_tests(cls):
