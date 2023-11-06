@@ -1,1 +1,2 @@
 isatools
+markupsafe==2.0.1
