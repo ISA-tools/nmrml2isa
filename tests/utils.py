@@ -27,11 +27,9 @@ VERBOSE = '-v' in sys.argv or '--verbose' in sys.argv
 if IN_CI:
     config_directory = os.path.join(os.environ.get("HOME"), "MetaboLightsConfig")
     studies_directory = os.path.join(os.environ.get("HOME"), "MetaboLightsStudies")
-    examples_directory = os.path.join(os.environ.get("HOME"), "nmrML")
 else:
     config_directory = tempfile.mkdtemp()
     studies_directory = tempfile.mkdtemp()
-    examples_directory = tempfile.mkdtemp()
 
 def vprint(*args, **kwargs):
     if VERBOSE:
@@ -95,25 +93,9 @@ def download_configuration_files(dl_directory=None):
 
     return dl_directory
 
-def download_nmrml_repository(dl_directory=None):
-
-    NMRML_URL = "https://github.com/nmrML/nmrML"
-    dl_directory = dl_directory or examples_directory
-
-    if IN_CI:
-        if os.path.isdir(os.path.join(dl_directory, 'examples')):
-            return dl_directory
-
-    vprint("downloading nmrML/nmrML repository to {} ...".format(dl_directory), end=" ")
-    retcode = subprocess.call(["git", "clone", NMRML_URL, dl_directory, "--depth", "1"] +  (['-q'] if not VERBOSE else []))
-    if not retcode:
-        vprint("ok")
-    return dl_directory
-
 def cleanUp():
     if not IN_CI:
         shutil.rmtree(config_directory)
         shutil.rmtree(studies_directory)
-        shutil.rmtree(examples_directory)
 
 atexit.register(cleanUp)

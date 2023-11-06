@@ -34,7 +34,7 @@ class TestNmrmlExamples(AbstractTestIsa):
     @classmethod
     def setUpClass(cls):
         cls.config_dir = utils.download_configuration_files()
-        cls.repo_dir = utils.download_nmrml_repository()
+        cls.repo_dir = os.path.join(utils.MAINDIR, "examples", "nmrML")
         cls.out_dir = os.path.join(utils.TESTDIR, 'run')
         os.makedirs(cls.out_dir)
 

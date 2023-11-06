@@ -42,7 +42,7 @@ class TestMtblsStudy(AbstractTestIsa):
                 ebi_ftp.cwd("/pub/databases/metabolights/study_file_extensions")
                 ebi_ftp.retrbinary("RETR ml_file_extension.json", study_exts.write)
         except:
-            return []
+            return ["MTBLS1"]
         else:
             stats = json.loads(study_exts.getvalue().decode('utf-8'))
             return [s['id'] for s in stats if '.nmrML' in s['extensions']]

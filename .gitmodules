@@ -1,0 +1,3 @@
+[submodule "examples/nmrML"]
+	path = examples/nmrML
+	url = https://github.com/nmrML/nmrML
